@@ -1,76 +1,93 @@
 /**
- * C3: Area of Review (AoR) Plume and Pressure Front Geometry
+ * C3: Area of Review (AoR) - Dual-radius
  *
- * Computes:
- *   1. Pressure front radius using radial diffusion: r_pf = sqrt(4 * eta * t)
- *      where eta = k / (phi * mu * ct) is hydraulic diffusivity (m2/s)
- *   2. Plume radius from injected volume: r_plume = sqrt(V_inj / (pi * h * phi * Sg))
- *   3. Regulatory AoR radius via Cooper-Jacob inversion of the EPA 0.1 MPa threshold
- *   4. r_AoR = max(r_AoR_crit, r_plume)
+ * 1. Theis characteristic diffusion length (conservative upper bound):
+ *      r_pf = sqrt(4 * eta * t)  where eta = k / (phi * mu_brine * ct)
+ *    NOTE: mu_brine is used (not mu_CO2) because the pressure front propagates
+ *    through brine-saturated rock ahead of the CO2 plume.
  *
- * Cooper-Jacob approximation (valid for r^2 * phi * mu * ct / (4 * k * t) < 0.01):
- *   dP(r,t) = (Q * mu) / (4 * pi * k * h) * [-Ei(-r^2 / (4 * eta * t))]
- *   Inversion for r_AoR where dP = dP_crit:
- *   r_AoR_crit = sqrt(-4 * eta * t * ln(dP_crit * 4 * pi * k * h / (Q * mu * exp(gamma))))
- *   where gamma = 0.5772 (Euler-Mascheroni constant)
+ * 2. CO2 plume radius:
+ *      r_plume = sqrt(Q * t / (pi * h * phi * S_CO2))   S_CO2 default 0.65
  *
- * Pass criterion: r_AoR <= regulatory boundary (assessed qualitatively at screening;
- * pass_flag is always True at this stage since the AoR is reported for permit submission,
- * not compared against a fixed threshold). Users apply this output to their site geometry.
+ * 3. Cooper-Jacob regulatory AoR inversion at dP_crit threshold:
+ *      W_crit = dP_crit * 4*pi*k*h / (Q * mu_brine)
+ *      r_AoR_crit = sqrt(2.25 * eta * t / exp(W_crit))
+ *    With overflow guard: if W_crit >= 700 or wellbore dP < dP_crit, r_AoR_crit = 0.
+ *
+ * 4. r_AoR = max(r_AoR_crit, r_plume)
+ *
+ * Pass: r_AoR < r_permitted_m  (EPA 40 CFR 146.84(a)(1))
+ * If r_permitted_m not supplied, C3 is informational (no pass/fail verdict).
  *
  * References:
- *   Cooper, H.H. and Jacob, C.E. (1946). A generalized graphical method for evaluating
- *     formation constants and summarizing well-field history. Trans. AGU 27(4), 526-534.
- *   EPA (2011). Underground Injection Control (UIC) Class VI rule, 40 CFR 146.84.
+ *   Cooper and Jacob (1946) Trans. AGU 27(4), 526-534.
+ *   EPA 40 CFR 146.84(a)(1).
  */
 
 import type { FormationInput, CriterionResult } from "../types.js";
 
-const EULER_MASCHERONI = 0.5772156649;
+const R_W_GUARD = 0.1; // wellbore radius for guard check [m]
 
 export function c3AreaOfReview(f: FormationInput): CriterionResult {
-  const k_m2 = f.k_res_mD * 9.869233e-16; // mD -> m2
-  const mu = (f.mu_CO2 ?? 6.5e-5);        // Pa.s
-  const phi = f.phi_res_frac;
-  const ct = f.ct_Pa;
-  const h = f.h_m;
-  const Q = f.Q_m3s;
-  const t = f.t_s;
-  const dP_crit_Pa = f.dP_crit_Pa ?? 1e5; // default 0.1 MPa (EPA UIC)
+  const k_m2 = f.k_res_mD * 9.869e-16;
+  const S_CO2 = f.S_CO2 ?? 0.65;
+  const dP_crit_Pa = f.dP_crit_Pa ?? 1e5;
 
-  // Hydraulic diffusivity (m2/s)
-  const eta = k_m2 / (phi * mu * ct);
+  // Hydraulic diffusivity using BRINE viscosity (pressure front in brine)
+  const eta = k_m2 / (f.phi_res_frac * f.mu_brine_Pa_s * f.ct_Pa);
 
-  // 1. Pressure front radius (m)
-  const r_pf_m = Math.sqrt(4 * eta * t);
+  // 1. Theis diffusion length [m]
+  const r_pf_m = Math.sqrt(4.0 * eta * f.t_s);
 
-  // 2. Plume radius (assuming Sg = 0.6 for supercritical CO2 plume)
-  const Sg = 0.6;
-  const V_inj_m3 = Q * t;
-  const r_plume_m = Math.sqrt(V_inj_m3 / (Math.PI * h * phi * Sg));
+  // 2. CO2 plume radius [m]
+  const r_plume_m = Math.sqrt(
+    (f.Q_m3s * f.t_s) / (Math.PI * f.h_m * f.phi_res_frac * S_CO2)
+  );
 
   // 3. Cooper-Jacob AoR inversion
-  // dP_crit = (Q * mu) / (4 * pi * k * h) * (-Ei(-u))
-  // For small u, -Ei(-u) ~ ln(1/u) - gamma
-  // Solve: ln(1/u) - gamma = dP_crit * 4*pi*k*h / (Q*mu)
-  // u = exp(-(dP_crit * 4*pi*k*h/(Q*mu) + gamma))
-  // r_AoR = sqrt(4 * eta * t * u)
-  const transmissivity = (k_m2 * h) / mu;
-  const jacob_arg = dP_crit_Pa * 4 * Math.PI * transmissivity / Q;
-  const r_AoR_crit_m_sq = 4 * eta * t * Math.exp(-(jacob_arg + EULER_MASCHERONI));
-  const r_AoR_crit_m = r_AoR_crit_m_sq > 0 ? Math.sqrt(r_AoR_crit_m_sq) : r_pf_m;
+  const W_crit =
+    (dP_crit_Pa * 4.0 * Math.PI * k_m2 * f.h_m) /
+    Math.max(f.Q_m3s * f.mu_brine_Pa_s, 1e-30);
 
-  // 4. Regulatory AoR
+  // Wellbore pressure guard check
+  const ln_arg = (2.25 * eta * f.t_s) / (R_W_GUARD * R_W_GUARD);
+  const dP_well_Pa =
+    ln_arg > 1.0
+      ? ((f.Q_m3s * f.mu_brine_Pa_s) / (4.0 * Math.PI * k_m2 * f.h_m)) *
+        Math.log(ln_arg)
+      : 0.0;
+
+  let r_AoR_crit_m: number;
+  if (dP_well_Pa < dP_crit_Pa) {
+    // Pressure nowhere reaches dP_crit; AoR is plume-governed
+    r_AoR_crit_m = 0.0;
+  } else if (W_crit < 700.0) {
+    r_AoR_crit_m = Math.sqrt((2.25 * eta * f.t_s) / Math.exp(W_crit));
+  } else {
+    // W_crit >= 700: exp() overflow; high transmissivity, pressure decays below dP_crit
+    r_AoR_crit_m = 0.0;
+  }
+
   const r_AoR_m = Math.max(r_AoR_crit_m, r_plume_m);
 
-  // Pass: always true at screening (AoR is reported, not pass/fail against fixed boundary)
-  const pass_flag = true;
+  // Pass/fail only when regulatory boundary is supplied
+  let pass_flag: boolean;
+  let status: "PASS" | "FAIL" | "NSR" | "N/A";
+  let note: string | undefined;
+  if (f.r_permitted_m !== undefined) {
+    pass_flag = r_AoR_m < f.r_permitted_m;
+    status = pass_flag ? "PASS" : "FAIL";
+  } else {
+    pass_flag = true;
+    status = "PASS";
+    note = "AoR informational: supply r_permitted_m to enable regulatory pass/fail (EPA 40 CFR 146.84).";
+  }
 
-  return {
+  const result: CriterionResult = {
     criterion: "C3",
     label: "Area of Review",
     pass_flag,
-    status: "PASS",
+    status,
     value: r_AoR_m,
     unit: "m",
     details: {
@@ -78,8 +95,12 @@ export function c3AreaOfReview(f: FormationInput): CriterionResult {
       r_plume_m,
       r_AoR_crit_m,
       r_AoR_m,
+      r_permitted_m: f.r_permitted_m ?? 0,
       eta_m2s: eta,
-      V_inj_m3,
+      S_CO2,
+      dP_crit_Pa,
     },
   };
+  if (note) result.note = note;
+  return result;
 }

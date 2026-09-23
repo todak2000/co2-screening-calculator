@@ -15,32 +15,31 @@ import { c1FaultReactivation } from "./physics/c1_fault.js";
 import { c2SealIntegrity } from "./physics/c2_seal.js";
 import { c3AreaOfReview } from "./physics/c3_aor.js";
 import { c4DissolutionTrapping } from "./physics/c4_dissolution.js";
-import { c5MinInjectionRate } from "./physics/c5_injection.js";
+import { c5HalitePrecipitation } from "./physics/c5_injection.js";
 import { c6SupercriticalPhase } from "./physics/c6_phase.js";
 import { c7CapillarySeal } from "./physics/c7_capillary.js";
 import { c8StorageCapacity } from "./physics/c8_capacity.js";
 import { c9Injectivity } from "./physics/c9_injectivity.js";
 import { c10MonitoringFeasibility } from "./physics/c10_monitoring.js";
 
-/** Populate EOS-derived properties if T_C and P_MPa are present and rho/mu absent. */
+/**
+ * Populate EOS-derived CO2 properties if T_C and P_MPa are present
+ * and rho_CO2_kgm3 / mu_CO2 are absent or zero.
+ */
 function fillEosProperties(f: FormationInput): FormationInput {
   const filled = { ...f };
   if (filled.T_C !== undefined && filled.P_MPa !== undefined) {
-    if (filled.rho_CO2_kgm3 === undefined || filled.rho_CO2_kgm3 <= 0) {
+    if (!filled.rho_CO2_kgm3 || filled.rho_CO2_kgm3 <= 0) {
       filled.rho_CO2_kgm3 = prDensity(filled.T_C, filled.P_MPa);
     }
-    if (filled.mu_CO2 === undefined || filled.mu_CO2 <= 0) {
-      const rho = filled.rho_CO2_kgm3;
-      filled.mu_CO2 = fenghourViscosity(filled.T_C, rho);
+    if (!filled.mu_CO2 || filled.mu_CO2 <= 0) {
+      filled.mu_CO2 = fenghourViscosity(filled.T_C, filled.rho_CO2_kgm3);
     }
   }
   return filled;
 }
 
-/**
- * Evaluate C11-C14 permit criteria (boolean inputs).
- * Returns N/A if the field is undefined (not yet assessed).
- */
+/** Evaluate C11-C14 permit criteria (boolean inputs). */
 function evalPermitCriteria(f: FormationInput): CriterionResult[] {
   const permit: Array<{
     criterion: string;
@@ -79,7 +78,7 @@ export function runScreening(
     c2SealIntegrity(f),
     c3AreaOfReview(f),
     c4DissolutionTrapping(f),
-    c5MinInjectionRate(f),
+    c5HalitePrecipitation(f),
     c6SupercriticalPhase(f),
     c7CapillarySeal(f),
     c8StorageCapacity(f),

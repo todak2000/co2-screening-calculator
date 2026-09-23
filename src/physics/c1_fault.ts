@@ -1,18 +1,19 @@
 /**
  * C1: Fault Reactivation Safety (Mohr-Coulomb criterion)
  *
- * Computes the maximum safe injection pressure P_max such that the
- * effective normal stress on the critically-oriented fault plane
- * remains below the Mohr-Coulomb failure envelope.
+ * Thermoelastic correction (uniaxial strain, laterally extensive reservoir):
+ *   delta_sigma_T = E * alpha_T * delta_T / (1 - nu)  [Pa]
+ *   (Fjaer et al. 2008; Zoback 2007)
  *
- * Thermoelastic correction for Joule-Thomson cooling at the sandface
- * is applied when delta_T_C is provided (Vilarrasa et al. 2013).
+ * Applied to sigma_3 (cooling reduces horizontal stress, tightening injection window).
  *
- * P_max criterion (Zoback, 2007):
- *   tau <= C0 + mu_f * (sigma_n - alpha * P)
- *   => P_max = [sigma_n - (tau - C0)/mu_f] / alpha_biot
+ * P_max = [sigma_n_total - (tau - C0) / mu_f] / alpha_biot
+ * Pass: P_init < P_max
  *
- * Reference: Zoback, M.D. (2007) Reservoir Geomechanics. Cambridge University Press.
+ * References:
+ *   Jaeger, Cook and Zimmerman (2007) Fundamentals of Rock Mechanics, 4th ed.
+ *   Zoback, M.D. (2007) Reservoir Geomechanics. Cambridge University Press.
+ *   Fjaer et al. (2008) Petroleum Related Rock Mechanics, 2nd ed.
  */
 
 import type { FormationInput, CriterionResult } from "../types.js";
@@ -20,36 +21,34 @@ import type { FormationInput, CriterionResult } from "../types.js";
 const DEG2RAD = Math.PI / 180;
 
 export function c1FaultReactivation(f: FormationInput): CriterionResult {
-  const beta = f.beta_deg * DEG2RAD;
+  // Thermoelastic stress correction (uniaxial strain; Fjaer et al. 2008)
+  const delta_T = f.delta_T_C ?? 0.0;
+  const E_Pa = (f.E_GPa ?? 20.0) * 1e9;
+  const alpha_T = f.alpha_T ?? 1e-5;
+  const nu = f.nu_poisson ?? 0.25;
+  const delta_sigma_T_Pa = (E_Pa * alpha_T * delta_T) / (1.0 - nu);
+  const delta_sigma_T_MPa = delta_sigma_T_Pa / 1e6;
 
-  // Normal and shear stress on fault plane
-  const sigma_n =
-    ((f.sigma1_MPa + f.sigma3_MPa) / 2) +
-    ((f.sigma1_MPa - f.sigma3_MPa) / 2) * Math.cos(2 * beta);
+  // Cooling (delta_T < 0) reduces sigma_3, tightening the injection window
+  const sigma3_eff_MPa = f.sigma3_MPa + delta_sigma_T_MPa;
+
+  const beta_rad = f.beta_deg * DEG2RAD;
+
+  // Normal and shear stress on fault plane (Eqs 1-2 of main paper)
+  const sigma_n_total =
+    (f.sigma1_MPa + sigma3_eff_MPa) / 2.0 -
+    ((f.sigma1_MPa - sigma3_eff_MPa) / 2.0) * Math.cos(2.0 * beta_rad);
   const tau =
-    ((f.sigma1_MPa - f.sigma3_MPa) / 2) * Math.sin(2 * beta);
+    ((f.sigma1_MPa - sigma3_eff_MPa) / 2.0) * Math.sin(2.0 * beta_rad);
+  const sigma_n_eff = sigma_n_total - f.P_init_MPa;
 
-  // Thermoelastic correction: cooling reduces sigma3 (tensile direction)
-  // delta_sigma_T = E * alpha_T * delta_T / (1 - nu)
-  // We use a conservative proxy: delta_T shifts P_init by an equivalent stress,
-  // which is bounded to +/- 3 MPa for screening purposes when raw E/nu absent.
-  // Full geomechanical model requires E and nu; simplified correction here.
-  let sigma_n_eff = sigma_n;
-  if (f.delta_T_C !== undefined) {
-    // Simplified: 0.1 MPa/degC thermoelastic stress change (typical sandstone range)
-    // Replace with E*alpha_T/(1-nu)*|delta_T| when elastic constants are available.
-    const thermoelastic_MPa = 0.1 * Math.abs(f.delta_T_C);
-    // Cooling (delta_T < 0) reduces confining stress, making failure more likely
-    if (f.delta_T_C < 0) {
-      sigma_n_eff = sigma_n - thermoelastic_MPa;
-    }
-  }
+  // Slip criterion with Biot effective stress (Zoback 2007 §6):
+  //   tau = C0 + mu_f * (sigma_n_total - alpha * P_max)
+  //   => P_max_biot = [sigma_n_total - (tau - C0)/mu_f] / alpha_biot
+  const bracket = sigma_n_total - (tau - f.C0_MPa) / f.mu_f;
+  const P_max_MPa = bracket / f.alpha_biot;
 
-  // P_max: maximum pore pressure before fault reactivation
-  const P_max_MPa =
-    (sigma_n_eff - (tau - f.C0_MPa) / f.mu_f) / f.alpha_biot;
-
-  const pass_flag = P_max_MPa > f.P_init_MPa;
+  const pass_flag = f.P_init_MPa < P_max_MPa;
 
   return {
     criterion: "C1",
@@ -62,8 +61,10 @@ export function c1FaultReactivation(f: FormationInput): CriterionResult {
     details: {
       P_max_MPa,
       P_init_MPa: f.P_init_MPa,
-      sigma_n_MPa: sigma_n,
+      sigma_n_total_MPa: sigma_n_total,
+      sigma_n_eff_MPa: sigma_n_eff,
       tau_MPa: tau,
+      delta_sigma_T_MPa,
       margin_MPa: P_max_MPa - f.P_init_MPa,
     },
   };

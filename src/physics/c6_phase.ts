@@ -1,52 +1,41 @@
 /**
- * C6: Supercritical Phase Conditions
+ * C6: CO2 Phase State - Supercritical Verification
  *
- * CO2 must be in supercritical or dense liquid phase for efficient storage.
- * Critical point: Tc = 31.04 degC, Pc = 7.38 MPa.
+ * Pass: P > 7.38 MPa AND T > 31.1 degC (CO2 critical point)
  *
- * Pass criterion: T > 31 degC AND P > 7.38 MPa
- *
- * Also computes water content of CO2 phase using a simplified
- * Spycher-Pruess (2005) polynomial fit valid for 50-200 degC, 5-60 MPa.
+ * Critical constants from Span and Wagner (1996):
+ *   T_crit = 304.13 K = 30.98 degC
+ *   P_crit = 7.3773 MPa
  *
  * Reference:
- *   Spycher, N. and Pruess, K. (2005). CO2-H2O mixtures in the geological
- *     sequestration of CO2. I. Assessment and calculation of mutual solubilities
- *     from 12 to 100 degrees C and up to 600 bar. Geochim. Cosmochim. Acta 69(13),
- *     3309-3320.
+ *   Span, R. and Wagner, W. (1996). J. Phys. Chem. Ref. Data 25(6), 1509-1596.
  */
 
 import type { FormationInput, CriterionResult } from "../types.js";
 
-const TC_CRITICAL = 31.04; // degC
-const PC_CRITICAL_MPa = 7.38; // MPa
+const T_CRIT_CO2_K = 304.13;
+const P_CRIT_CO2_Pa = 7.3773e6;
 
 export function c6SupercriticalPhase(f: FormationInput): CriterionResult {
-  const pass_flag = f.T_C > TC_CRITICAL && f.P_MPa > PC_CRITICAL_MPa;
+  const P_crit_MPa = P_CRIT_CO2_Pa / 1e6; // 7.38 MPa
+  const T_crit_C = T_CRIT_CO2_K - 273.15; // 30.98 degC
 
-  // Simplified chi_w estimate: use provided value or rough approximation
-  let chi_w = f.chi_w;
-  if (chi_w === undefined) {
-    // Very rough: chi_w decreases with depth (higher P), increases with T
-    // Spycher-Pruess simplified polynomial at typical storage conditions
-    chi_w = Math.max(1e-4, 3.6e-2 * Math.exp(-0.04 * f.P_MPa) * (1 + 0.002 * (f.T_C - 31)));
-  }
+  const supercritical = f.P_MPa > P_crit_MPa && f.T_C > T_crit_C;
 
   return {
     criterion: "C6",
     label: "Supercritical Phase Conditions",
-    pass_flag,
-    status: pass_flag ? "PASS" : "FAIL",
+    pass_flag: supercritical,
+    status: supercritical ? "PASS" : "FAIL",
     value: f.P_MPa,
-    threshold: PC_CRITICAL_MPa,
+    threshold: P_crit_MPa,
     unit: "MPa",
     details: {
       T_C: f.T_C,
       P_MPa: f.P_MPa,
-      T_critical_C: TC_CRITICAL,
-      P_critical_MPa: PC_CRITICAL_MPa,
-      chi_w,
-      phase: pass_flag ? "supercritical/dense" : "subcritical",
+      T_critical_C: T_crit_C,
+      P_critical_MPa: P_crit_MPa,
+      supercritical,
     },
   };
 }
