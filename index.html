@@ -3,353 +3,919 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CO2 Geological Storage Screening Calculator</title>
+  <meta name="description" content="14-Criterion CO2 Geological Storage Screening Calculator. Physics-based, regulatory-aligned site assessment tool for CCUS. Developed by Daniel T. Olagunju, Universiti Teknologi PETRONAS." />
+  <title>CO2 Storage Screening Calculator | Olagunju (2027) SPE CCUS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
   <style>
-    /* ===== Base ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --pass:   #2e7d32;
-      --fail:   #c62828;
-      --nsr:    #6a1b9a;
-      --na:     #555;
-      --bg:     #f5f5f5;
-      --card:   #fff;
-      --border: #ddd;
-      --font:   "Segoe UI", system-ui, sans-serif;
+      --navy:   #0d1b2a; --navy2:  #1b2f45; --navy3: #0a3d5c;
+      --teal:   #06b6d4; --teal2: #0891b2;
+      --bg:     #eef2f7; --surface: #ffffff; --border: #d1dbe8;
+      --text:   #1e293b; --muted: #64748b;
+      --pass:   #059669; --fail: #dc2626; --nsr: #7c3aed; --na: #64748b;
+      --shadow: 0 2px 10px rgba(0,0,0,.08);
+      --r: 8px; --font: "Inter", system-ui, sans-serif;
     }
-    body { font-family: var(--font); background: var(--bg); color: #222; }
-    h1 { font-size: 1.3rem; font-weight: 700; }
-    h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
-    h3 { font-size: 0.9rem; font-weight: 600; color: #444; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+    a { color: var(--teal); text-decoration: none; }
+    a:hover { text-decoration: underline; }
 
-    /* ===== Layout ===== */
-    .app-header {
-      background: #1a237e; color: #fff; padding: 0.75rem 1.5rem;
-      display: flex; align-items: center; justify-content: space-between;
+    /* ===== HERO ===== */
+    .hero {
+      background: linear-gradient(140deg, var(--navy) 0%, var(--navy2) 55%, var(--navy3) 100%);
+      color: #fff; padding: 2.25rem 2rem 1.75rem;
+      border-bottom: 3px solid var(--teal);
     }
-    .app-header .subtitle { font-size: 0.75rem; opacity: 0.8; }
-    .print-btn {
-      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4);
-      color: #fff; padding: 0.35rem 0.9rem; border-radius: 4px; cursor: pointer;
-      font-size: 0.8rem;
+    .hero-inner { max-width: 1440px; margin: 0 auto; }
+    .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+    .hero-brand { display: flex; align-items: center; gap: 1rem; }
+    .hero-icon {
+      width: 50px; height: 50px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--teal), #0284c7);
+      display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
     }
-    .print-btn:hover { background: rgba(255,255,255,0.25); }
+    .hero-title { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+    .hero-sub { font-size: 0.76rem; color: rgba(255,255,255,.6); margin-top: 0.2rem; }
+    .hero-actions { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; padding-top: 0.25rem; }
+    .btn-ghost {
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22);
+      color: #fff; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer;
+      font-size: 0.76rem; font-weight: 500; font-family: var(--font); transition: background .15s;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.18); }
+    .btn-teal {
+      background: var(--teal); border: none; color: var(--navy);
+      padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer;
+      font-size: 0.76rem; font-weight: 700; font-family: var(--font); transition: background .15s;
+    }
+    .btn-teal:hover { background: #22d3ee; }
 
-    .main-layout {
-      display: grid;
-      grid-template-columns: 400px 1fr;
-      gap: 1rem;
-      padding: 1rem 1.5rem;
-      max-width: 1400px;
-      margin: 0 auto;
+    .hero-meta {
+      margin-top: 1.2rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,.1);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
     }
-
-    /* ===== Input Panel ===== */
-    .input-panel { display: flex; flex-direction: column; gap: 0.75rem; }
-
-    .example-row { display: flex; gap: 0.5rem; margin-bottom: 0.25rem; }
-    .example-btn {
-      flex: 1; background: #e8eaf6; border: 1px solid #9fa8da; border-radius: 4px;
-      cursor: pointer; padding: 0.4rem; font-size: 0.78rem; font-weight: 600;
-      color: #283593;
+    .hero-citation { font-size: 0.74rem; color: rgba(255,255,255,.55); line-height: 1.65; max-width: 680px; }
+    .hero-citation strong { color: rgba(255,255,255,.9); }
+    .hero-author {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px; padding: 0.6rem 1rem; flex-shrink: 0;
     }
-    .example-btn:hover { background: #c5cae9; }
-
-    details { background: var(--card); border: 1px solid var(--border); border-radius: 6px; }
-    summary {
-      padding: 0.6rem 0.8rem; cursor: pointer; font-size: 0.85rem;
-      font-weight: 600; user-select: none; list-style: none;
-      display: flex; align-items: center; gap: 0.4rem;
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--teal), #0284c7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 800; color: var(--navy);
     }
-    summary::before { content: "▶"; font-size: 0.6rem; transition: transform 0.15s; }
-    details[open] summary::before { transform: rotate(90deg); }
-    .fields { padding: 0.5rem 0.8rem 0.8rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 0.6rem; }
-    label { font-size: 0.75rem; color: #444; display: flex; flex-direction: column; gap: 2px; }
-    label span { font-weight: 500; }
-    input[type="number"], input[type="checkbox"] { border: 1px solid var(--border); border-radius: 3px; }
-    input[type="number"] {
-      padding: 0.25rem 0.4rem; font-size: 0.8rem; width: 100%;
-    }
-    .checkbox-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; }
+    .author-name { font-weight: 700; font-size: 0.82rem; color: #fff; }
+    .author-affil { font-size: 0.7rem; color: rgba(255,255,255,.5); margin-top: 1px; }
 
+    /* ===== MAIN LAYOUT ===== */
+    .wrap { max-width: 1440px; margin: 0 auto; padding: 1.25rem 1.5rem 2rem; }
+    .grid { display: grid; grid-template-columns: 450px 1fr; gap: 1.25rem; align-items: start; }
+
+    /* ===== INPUT PANEL ===== */
+    .input-panel {
+      background: var(--surface); border-radius: var(--r);
+      border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden;
+    }
+    .panel-head {
+      background: var(--navy); color: #fff; padding: 0.65rem 1rem;
+      font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;
+      letter-spacing: .02em;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); }
+
+    /* Formation meta */
+    .fmeta { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+    .fname-row { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; }
+    .fname-row input {
+      flex: 1; border: 1px solid var(--border); border-radius: 6px;
+      padding: 0.42rem 0.7rem; font-size: 0.84rem; font-weight: 600;
+      color: var(--text); font-family: var(--font); outline: none; transition: border-color .15s;
+    }
+    .fname-row input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(6,182,212,.12); }
+    .ex-row { display: flex; gap: 0.4rem; }
+    .ex-btn {
+      flex: 1; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 5px;
+      cursor: pointer; padding: 0.32rem; font-size: 0.7rem; font-weight: 700;
+      color: #1d4ed8; font-family: var(--font); transition: background .12s;
+    }
+    .ex-btn:hover { background: #dbeafe; }
+
+    /* Tabs */
+    .tab-nav { display: flex; overflow-x: auto; border-bottom: 2px solid var(--border); scrollbar-width: none; }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 0.55rem 0.75rem; font-size: 0.7rem; font-weight: 700; white-space: nowrap;
+      border: none; background: none; cursor: pointer; color: var(--muted); font-family: var(--font);
+      border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color .15s;
+    }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    .tab-panel { display: none; padding: 0.85rem 1rem 0.5rem; max-height: 480px; overflow-y: auto; }
+    .tab-panel.active { display: block; }
+    .tab-panel::-webkit-scrollbar { width: 4px; }
+    .tab-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .fg { margin-bottom: 0.85rem; }
+    .fg-title {
+      font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); margin-bottom: 0.45rem; padding-bottom: 0.3rem;
+      border-bottom: 1px dashed var(--border);
+    }
+    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem 0.7rem; }
+    .fgrid.w3 { grid-template-columns: 1fr 1fr 1fr; }
+    .fgrid.w1 { grid-template-columns: 1fr; }
+
+    label.f { display: flex; flex-direction: column; gap: 3px; }
+    .fn {
+      font-size: 0.71rem; font-weight: 600; color: var(--text);
+      display: flex; align-items: center; gap: 0.3rem;
+    }
+    .opt {
+      font-size: 0.6rem; background: #f1f5f9; border: 1px solid var(--border);
+      border-radius: 3px; padding: 0 3px; color: var(--muted); font-weight: 500;
+    }
+    .fu { font-size: 0.65rem; color: var(--muted); }
+    input[type="number"], select {
+      border: 1px solid var(--border); border-radius: 5px;
+      padding: 0.33rem 0.48rem; font-size: 0.76rem; width: 100%;
+      color: var(--text); background: #fff; outline: none; font-family: var(--font);
+      transition: border-color .15s;
+    }
+    input[type="number"]:focus, select:focus {
+      border-color: var(--teal); box-shadow: 0 0 0 3px rgba(6,182,212,.1);
+    }
+    select { cursor: pointer; }
+
+    .permit-item {
+      display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.6rem;
+      padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 6px;
+      margin-bottom: 0.45rem; background: #fafafa;
+    }
+    .pnum { font-size: 0.7rem; font-weight: 800; color: var(--muted); letter-spacing: .03em; }
+    .plabel { font-size: 0.78rem; font-weight: 600; color: var(--text); }
+    .pdesc { font-size: 0.68rem; color: var(--muted); margin-top: 1px; }
+
+    /* Run */
+    .run-wrap { padding: 0.7rem 1rem; border-top: 1px solid var(--border); }
     .run-btn {
-      background: #1a237e; color: #fff; border: none; border-radius: 6px;
-      padding: 0.65rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; width: 100%;
+      width: 100%; background: linear-gradient(135deg, #0d1b2a 0%, #0a3d5c 100%);
+      color: #fff; border: none; border-radius: 7px; padding: 0.72rem;
+      font-size: 0.88rem; font-weight: 700; cursor: pointer; font-family: var(--font);
+      letter-spacing: .01em; transition: opacity .15s;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     }
-    .run-btn:hover { background: #283593; }
+    .run-btn:hover { opacity: .85; }
 
-    /* ===== Results Panel ===== */
-    .results-panel { display: flex; flex-direction: column; gap: 0.75rem; }
+    /* ===== RESULTS ===== */
+    .results-panel {
+      background: var(--surface); border-radius: var(--r);
+      border: 1px solid var(--border); box-shadow: var(--shadow); min-height: 420px;
+    }
+    .rph {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 420px; gap: 0.85rem; color: var(--muted); text-align: center; padding: 2.5rem;
+    }
+    .rph-icon { font-size: 3.5rem; opacity: .2; }
+    .rph h3 { font-size: 1.05rem; color: var(--text); font-weight: 700; }
+    .rph p { font-size: 0.8rem; max-width: 300px; line-height: 1.65; }
 
+    .rcontent { padding: 1rem; }
     .overall-banner {
-      border-radius: 8px; padding: 0.75rem 1rem;
-      font-weight: 700; font-size: 1rem; color: #fff;
+      border-radius: 9px; padding: 1rem 1.25rem; color: #fff;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      flex-wrap: wrap; margin-bottom: 1rem;
+    }
+    .overall-banner.pass { background: linear-gradient(135deg, #047857, #059669); }
+    .overall-banner.fail { background: linear-gradient(135deg, #991b1b, #dc2626); }
+    .ov-left { display: flex; flex-direction: column; gap: 0.15rem; }
+    .ov-verdict { font-size: 1.4rem; font-weight: 800; }
+    .ov-name { font-size: 0.8rem; opacity: .8; }
+    .ov-stats { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .stat {
+      background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.28);
+      border-radius: 20px; padding: 0.28rem 0.7rem; font-size: 0.74rem; font-weight: 700;
+    }
+    .rtoolbar {
       display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;
     }
-    .overall-banner.pass { background: var(--pass); }
-    .overall-banner.fail { background: var(--fail); }
+    .rtoolbar h3 { font-size: 0.82rem; font-weight: 700; }
+    .tbar-btns { display: flex; gap: 0.45rem; }
+    .ic-btn {
+      background: #f1f5f9; border: 1px solid var(--border); border-radius: 5px;
+      cursor: pointer; padding: 0.32rem 0.65rem; font-size: 0.71rem; font-weight: 600;
+      color: var(--muted); font-family: var(--font); transition: background .12s;
+    }
+    .ic-btn:hover { background: var(--border); color: var(--text); }
 
-    .criteria-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.6rem;
+    .cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.65rem; }
+    .cc {
+      background: #fff; border: 1px solid var(--border); border-radius: 8px;
+      border-left: 4px solid var(--border); padding: 0.72rem 0.85rem;
+      cursor: pointer; transition: box-shadow .15s;
     }
-    .crit-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 6px;
-      padding: 0.6rem 0.8rem; border-left: 4px solid var(--border);
-    }
-    .crit-card.PASS  { border-left-color: var(--pass); }
-    .crit-card.FAIL  { border-left-color: var(--fail); }
-    .crit-card.NSR   { border-left-color: var(--nsr); }
-    .crit-card.NA    { border-left-color: var(--na); }
+    .cc:hover { box-shadow: 0 4px 14px rgba(0,0,0,.1); }
+    .cc.PASS { border-left-color: var(--pass); }
+    .cc.FAIL { border-left-color: var(--fail); }
+    .cc.NSR  { border-left-color: var(--nsr); }
+    .cc.NA   { border-left-color: var(--na); }
+    .cc.open { background: #f8fffe; }
 
-    .crit-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.3rem; }
-    .crit-id { font-size: 0.7rem; font-weight: 700; color: #666; }
+    .ch { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
+    .cid { font-size: 0.67rem; font-weight: 800; color: var(--muted); letter-spacing: .05em; }
     .badge {
-      font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; color: #fff;
+      font-size: 0.67rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; color: #fff;
     }
     .badge.PASS { background: var(--pass); }
     .badge.FAIL { background: var(--fail); }
     .badge.NSR  { background: var(--nsr); }
     .badge.NA   { background: var(--na); }
+    .clabel { font-size: 0.81rem; font-weight: 700; margin-bottom: 0.28rem; }
+    .cval { font-size: 0.74rem; color: var(--muted); margin-bottom: 0.28rem; }
+    .cval strong { color: var(--text); }
 
-    .crit-label { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .crit-value { font-size: 0.78rem; color: #444; }
-    .crit-details { margin-top: 0.3rem; font-size: 0.72rem; color: #666; line-height: 1.5; }
+    .cdetails { display: none; border-top: 1px dashed var(--border); margin-top: 0.45rem; padding-top: 0.45rem; }
+    .cc.open .cdetails { display: block; }
+    .dr { display: flex; justify-content: space-between; font-size: 0.69rem; padding: 1.5px 0; }
+    .dk { color: var(--muted); }
+    .dv { font-weight: 600; color: var(--text); text-align: right; max-width: 55%; word-break: break-all; }
+    .cnote {
+      margin-top: 0.4rem; font-size: 0.69rem; color: #92400e;
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 0.3rem 0.5rem;
+    }
+    .expand-hint { font-size: 0.65rem; color: var(--muted); margin-top: 0.3rem; text-align: right; }
+    .cc.open .expand-hint { display: none; }
 
-    /* ===== Print ===== */
+    /* ===== FOOTER ===== */
+    .footer {
+      background: var(--navy); color: rgba(255,255,255,.65);
+      padding: 2.5rem 2rem; border-top: 3px solid var(--teal); margin-top: 2rem;
+    }
+    .footer-inner {
+      max-width: 1440px; margin: 0 auto;
+      display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 2rem;
+    }
+    .fc h4 { color: #fff; font-size: 0.84rem; font-weight: 700; margin-bottom: 0.7rem; }
+    .fc p, .fc li { font-size: 0.76rem; line-height: 1.75; }
+    .fc ul { list-style: none; }
+    .fc a { color: var(--teal); }
+
+    .collab-box {
+      background: rgba(6,182,212,.08); border: 1px solid rgba(6,182,212,.25);
+      border-radius: 10px; padding: 1.1rem; margin-top: 0.5rem;
+    }
+    .collab-box h5 { color: var(--teal); font-size: 0.82rem; margin-bottom: 0.4rem; }
+    .collab-box p { font-size: 0.74rem; margin-bottom: 0.65rem; }
+    .collab-link {
+      display: inline-block; background: var(--teal); color: var(--navy);
+      font-weight: 700; font-size: 0.74rem; padding: 0.38rem 0.9rem;
+      border-radius: 5px;
+    }
+    .collab-link:hover { background: #22d3ee; text-decoration: none; }
+
+    .fbot {
+      max-width: 1440px; margin: 1.5rem auto 0; padding-top: 1.2rem;
+      border-top: 1px solid rgba(255,255,255,.1);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.7rem; color: rgba(255,255,255,.35); flex-wrap: wrap; gap: 0.5rem;
+    }
+    .fbot span { color: var(--teal); }
+
+    /* ===== PRINT ===== */
     @media print {
-      .app-header .print-btn, .input-panel, .example-row { display: none !important; }
-      .main-layout { grid-template-columns: 1fr; padding: 0; }
-      .criteria-grid { grid-template-columns: repeat(3, 1fr); }
-      body { background: #fff; font-size: 10pt; }
-      .crit-card { break-inside: avoid; }
-      @page { margin: 15mm; }
+      .hero .hero-actions, .input-panel, .footer, .tbar-btns { display: none !important; }
+      .grid { grid-template-columns: 1fr; }
+      .hero { padding: 1rem; }
+      .cgrid { grid-template-columns: repeat(3, 1fr); }
+      .cc { break-inside: avoid; }
+      .cdetails { display: block !important; }
+      .cnote { display: block !important; }
+      body { background: #fff; }
+      @page { margin: 12mm; }
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .footer-inner { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <header class="app-header">
-    <div>
-      <h1>CO2 Geological Storage Screening Calculator</h1>
-      <div class="subtitle">14-Criterion Regulatory-Aligned Matrix | SPE CCUS 2027 | Physics-Based</div>
-    </div>
-    <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
-  </header>
 
-  <div class="main-layout">
-    <!-- INPUT PANEL -->
-    <div class="input-panel">
-      <div class="example-row">
-        <button class="example-btn" onclick="loadExample('sleipner')">Load: Sleipner Utsira</button>
-        <button class="example-btn" onclick="loadExample('mt_simon')">Load: Mt. Simon</button>
+<!-- ===== HERO ===== -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-top">
+      <div class="hero-brand">
+        <div class="hero-icon">&#x1F30E;</div>
+        <div>
+          <div class="hero-title">CO<sub>2</sub> Geological Storage Screening Calculator</div>
+          <div class="hero-sub">14-Criterion Physics-Based &amp; Regulatory-Aligned Matrix &nbsp;|&nbsp; SPE CCUS 2027 &nbsp;|&nbsp; Paper 1</div>
+        </div>
       </div>
-
-      <!-- C1 Geomechanical -->
-      <details open>
-        <summary>C1 Geomechanical</summary>
-        <div class="fields">
-          <label><span>σ₁ (MPa)</span><input type="number" id="sigma1_MPa" value="28" step="0.5" /></label>
-          <label><span>σ₃ (MPa)</span><input type="number" id="sigma3_MPa" value="18" step="0.5" /></label>
-          <label><span>P_init (MPa)</span><input type="number" id="P_init_MPa" value="9.8" step="0.1" /></label>
-          <label><span>Fault dip β (°)</span><input type="number" id="beta_deg" value="30" step="1" /></label>
-          <label><span>μ_f</span><input type="number" id="mu_f" value="0.65" step="0.01" /></label>
-          <label><span>C₀ (MPa)</span><input type="number" id="C0_MPa" value="0" step="0.1" /></label>
-          <label><span>α_Biot</span><input type="number" id="alpha_biot" value="0.75" step="0.01" /></label>
-          <label><span>ΔT_JT (°C)</span><input type="number" id="delta_T_C" value="-15" step="1" /></label>
-        </div>
-      </details>
-
-      <!-- C2 Seal -->
-      <details open>
-        <summary>C2/C7 Seal &amp; Capillary</summary>
-        <div class="fields">
-          <label><span>k_cap (mD)</span><input type="number" id="k_cap_mD" value="0.0001" step="0.0001" /></label>
-          <label><span>φ_cap</span><input type="number" id="phi_cap_frac" value="0.06" step="0.01" /></label>
-          <label><span>IFT (mN/m)</span><input type="number" id="IFT_mNm" value="30" step="1" /></label>
-          <label><span>θ_contact (°)</span><input type="number" id="theta_deg" value="15" step="1" /></label>
-          <label><span>h_cap (m)</span><input type="number" id="h_cap_m" value="200" step="5" /></label>
-          <label><span>ΔP_cap (MPa)</span><input type="number" id="dP_cap_MPa" value="3" step="0.1" /></label>
-        </div>
-      </details>
-
-      <!-- Reservoir & Injection -->
-      <details open>
-        <summary>Reservoir &amp; Injection (C3–C5, C8–C9)</summary>
-        <div class="fields">
-          <label><span>k_res (mD)</span><input type="number" id="k_res_mD" value="2000" step="10" /></label>
-          <label><span>φ_res</span><input type="number" id="phi_res_frac" value="0.37" step="0.01" /></label>
-          <label><span>h_res (m)</span><input type="number" id="h_m" value="250" step="5" /></label>
-          <label><span>Area (km²)</span><input type="number" id="area_km2" value="100" step="1" /></label>
-          <label><span>Q (m³/s)</span><input type="number" id="Q_m3s" value="0.024" step="0.001" /></label>
-          <label><span>t_inj (years)</span><input type="number" id="t_years" value="8" step="0.5" /></label>
-          <label><span>c_t (Pa⁻¹ × 1e-10)</span><input type="number" id="ct_1e10" value="5" step="0.5" /></label>
-          <label><span>V_DP (0–1)</span><input type="number" id="V_DP" value="0.30" step="0.01" /></label>
-          <label><span>E_vol</span><input type="number" id="E_vol" value="0.02" step="0.005" /></label>
-          <label><span>ΔP_crit (MPa)</span><input type="number" id="dP_crit_MPa" value="0.1" step="0.01" /></label>
-        </div>
-      </details>
-
-      <!-- Fluid Properties -->
-      <details>
-        <summary>Fluid Properties (C4–C6)</summary>
-        <div class="fields">
-          <label><span>T_res (°C)</span><input type="number" id="T_C" value="37" step="1" /></label>
-          <label><span>P_res (MPa)</span><input type="number" id="P_MPa" value="10" step="0.5" /></label>
-          <label><span>ρ_CO2 (kg/m³) [0=auto]</span><input type="number" id="rho_CO2_kgm3" value="720" step="10" /></label>
-          <label><span>μ_CO2 (μPa·s) [0=auto]</span><input type="number" id="mu_CO2_uPas" value="55" step="1" /></label>
-          <label><span>μ_brine (mPa·s)</span><input type="number" id="mu_brine_mPas" value="0.8" step="0.05" /></label>
-          <label><span>Δρ CO2/brine (kg/m³)</span><input type="number" id="delta_rho_kgm3" value="10" step="0.5" /></label>
-          <label><span>D_CO2 (m²/s × 1e-9)</span><input type="number" id="D_1e9" value="2" step="0.1" /></label>
-          <label><span>Salinity (ppm TDS)</span><input type="number" id="salinity_ppm" value="32000" step="1000" /></label>
-        </div>
-      </details>
-
-      <!-- Monitoring & Plume -->
-      <details>
-        <summary>Monitoring &amp; Plume (C10)</summary>
-        <div class="fields">
-          <label><span>Depth top (m)</span><input type="number" id="depth_m" value="800" step="10" /></label>
-          <label><span>Plume area (km²)</span><input type="number" id="plume_area_km2" value="4" step="0.5" /></label>
-          <label><span>Plume thickness (m)</span><input type="number" id="plume_thickness_m" value="40" step="5" /></label>
-        </div>
-      </details>
-
-      <!-- Permit -->
-      <details>
-        <summary>Regulatory Permit (C11–C14)</summary>
-        <div class="fields" style="grid-template-columns:1fr;">
-          <label class="checkbox-row"><input type="checkbox" id="c11" checked /> C11: USDW Exemption obtained</label>
-          <label class="checkbox-row"><input type="checkbox" id="c12" checked /> C12: No uncemented legacy wells within AoR</label>
-          <label class="checkbox-row"><input type="checkbox" id="c13" checked /> C13: Pore-space mineral rights secured</label>
-          <label class="checkbox-row"><input type="checkbox" id="c14" checked /> C14: EIA complete</label>
-        </div>
-      </details>
-
-      <button class="run-btn" onclick="runCalc()">Run Screening</button>
+      <div class="hero-actions">
+        <button class="btn-ghost" onclick="window.print()">&#x1F5A8; Print / PDF</button>
+        <a class="btn-teal" href="mailto:daniel_25013118@utp.edu.my?subject=CO2 Screening Calculator - Collaboration">&#x2709; Collaborate</a>
+      </div>
     </div>
 
-    <!-- RESULTS PANEL -->
-    <div class="results-panel" id="results">
-      <div style="color:#888; font-size:0.9rem; padding: 2rem; text-align:center;">
-        Select a formation example or enter parameters, then click <strong>Run Screening</strong>.
+    <div class="hero-meta">
+      <div class="hero-citation">
+        <strong>Olagunju, D.T. (2027).</strong> "A Systematic 14-Criterion Screening Framework for CO<sub>2</sub> Geological Storage Site Selection: Physics-Based and Regulatory-Aligned Assessment of 16 Global Saline Aquifer Formations." <em>SPE CCUS Conference and Exhibition</em>, Houston, TX. Society of Petroleum Engineers. &mdash;
+        Live tool: <a href="https://todak2000.github.io/co2-screening-calculator/" style="color:var(--teal)" target="_blank">todak2000.github.io/co2-screening-calculator</a>
+      </div>
+      <div class="hero-author">
+        <div class="avatar">DO</div>
+        <div>
+          <div class="author-name">Daniel T. Olagunju</div>
+          <div class="author-affil">Universiti Teknologi PETRONAS, Malaysia</div>
+          <div class="author-affil" style="margin-top:2px">
+            <a href="mailto:daniel_25013118@utp.edu.my" style="color:rgba(6,182,212,.8);font-size:0.68rem">daniel_25013118@utp.edu.my</a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+</header>
 
-  <script type="module">
-    import { runScreening } from './src/main.ts';
+<!-- ===== TOOL ===== -->
+<main class="wrap">
+  <div class="grid">
 
-    const EXAMPLES = {
-      sleipner: {
-        sigma1_MPa: 28, sigma3_MPa: 18, P_init_MPa: 9.8, beta_deg: 30, mu_f: 0.65,
-        C0_MPa: 0, alpha_biot: 0.75, delta_T_C: -10,
-        k_cap_mD: 0.0001, phi_cap_frac: 0.06, IFT_mNm: 30, theta_deg: 15,
-        h_cap_m: 200, dP_cap_MPa: 3,
-        k_res_mD: 2000, phi_res_frac: 0.37, h_m: 250, area_km2: 100,
-        Q_m3s: 0.024, t_years: 8, ct_1e10: 5, V_DP: 0.30, E_vol: 0.02, dP_crit_MPa: 0.1,
-        T_C: 37, P_MPa: 10, rho_CO2_kgm3: 720, mu_CO2_uPas: 55,
-        mu_brine_mPas: 0.8, delta_rho_kgm3: 10, D_1e9: 2, salinity_ppm: 32000,
-        depth_m: 800, plume_area_km2: 4, plume_thickness_m: 40,
-        c11: true, c12: true, c13: true, c14: true,
-      },
-      mt_simon: {
-        sigma1_MPa: 38, sigma3_MPa: 24, P_init_MPa: 20, beta_deg: 30, mu_f: 0.65,
-        C0_MPa: 0, alpha_biot: 0.70, delta_T_C: -15,
-        k_cap_mD: 0.0001, phi_cap_frac: 0.08, IFT_mNm: 32, theta_deg: 15,
-        h_cap_m: 20, dP_cap_MPa: 2,
-        k_res_mD: 35, phi_res_frac: 0.22, h_m: 150, area_km2: 12,
-        Q_m3s: 0.015, t_years: 3, ct_1e10: 8, V_DP: 0.45, E_vol: 0.03, dP_crit_MPa: 0.1,
-        T_C: 54, P_MPa: 22, rho_CO2_kgm3: 750, mu_CO2_uPas: 65,
-        mu_brine_mPas: 0.9, delta_rho_kgm3: 8.5, D_1e9: 2, salinity_ppm: 120000,
-        depth_m: 2100, plume_area_km2: 1.5, plume_thickness_m: 50,
-        c11: true, c12: true, c13: true, c14: false,
-      },
-    };
+    <!-- INPUT PANEL -->
+    <aside class="input-panel">
+      <div class="panel-head"><div class="dot"></div> INPUT PARAMETERS</div>
 
-    window.loadExample = function(name) {
-      const ex = EXAMPLES[name];
-      for (const [k, v] of Object.entries(ex)) {
-        const el = document.getElementById(k);
-        if (!el) continue;
-        if (el.type === 'checkbox') el.checked = v;
-        else el.value = v;
-      }
-    };
-
-    window.runCalc = function() {
-      const g = (id) => parseFloat(document.getElementById(id).value);
-      const gb = (id) => document.getElementById(id).checked;
-
-      const f = {
-        sigma1_MPa: g('sigma1_MPa'), sigma3_MPa: g('sigma3_MPa'),
-        P_init_MPa: g('P_init_MPa'), beta_deg: g('beta_deg'),
-        mu_f: g('mu_f'), C0_MPa: g('C0_MPa'), alpha_biot: g('alpha_biot'),
-        delta_T_C: g('delta_T_C'),
-        k_cap_mD: g('k_cap_mD'), phi_cap_frac: g('phi_cap_frac'),
-        IFT_mNm: g('IFT_mNm'), theta_deg: g('theta_deg'),
-        h_cap_m: g('h_cap_m'), dP_cap_MPa: g('dP_cap_MPa'),
-        Q_m3s: g('Q_m3s'), t_s: g('t_years') * 3.1536e7,
-        k_res_mD: g('k_res_mD'), phi_res_frac: g('phi_res_frac'),
-        ct_Pa: g('ct_1e10') * 1e-10, h_m: g('h_m'), V_DP: g('V_DP'),
-        mu_CO2: g('mu_CO2_uPas') * 1e-6 || undefined,
-        mu_brine_Pa_s: g('mu_brine_mPas') * 1e-3,
-        delta_rho_kgm3: g('delta_rho_kgm3'), D_m: g('D_1e9') * 1e-9,
-        T_C: g('T_C'), P_MPa: g('P_MPa'),
-        rho_CO2_kgm3: g('rho_CO2_kgm3') || 0,
-        area_km2: g('area_km2'), E_vol: g('E_vol'),
-        depth_m: g('depth_m'), salinity_ppm: g('salinity_ppm'),
-        plume_area_km2: g('plume_area_km2'), plume_thickness_m: g('plume_thickness_m'),
-        dP_crit_Pa: g('dP_crit_MPa') * 1e6,
-        c11_usdw_exempt: gb('c11'), c12_legacy_wells: gb('c12'),
-        c13_mineral_rights: gb('c13'), c14_eia_complete: gb('c14'),
-      };
-
-      const result = runScreening(f, 'Custom Formation');
-      renderResults(result);
-    };
-
-    function renderResults(r) {
-      const panel = document.getElementById('results');
-      const passClass = r.overall_pass ? 'pass' : 'fail';
-      const passLabel = r.overall_pass ? 'OVERALL: PASS' : 'OVERALL: FAIL';
-      const summary = `${r.pass_count} PASS | ${r.fail_count} FAIL | ${r.nsr_count} NSR`;
-
-      let cards = '';
-      for (const c of r.criteria) {
-        const statusClass = c.status === 'N/A' ? 'NA' : c.status;
-        const valueStr = c.value !== undefined
-          ? `<div class="crit-value">Value: <strong>${fmtNum(c.value)} ${c.unit ?? ''}</strong>${c.threshold !== undefined ? ` | Threshold: ${fmtNum(c.threshold)} ${c.unit ?? ''}` : ''}</div>`
-          : '';
-        const detailStr = Object.entries(c.details)
-          .slice(0, 4)
-          .map(([k, v]) => `${k}: ${typeof v === 'number' ? fmtNum(v) : v}`)
-          .join(' | ');
-        cards += `
-          <div class="crit-card ${statusClass}">
-            <div class="crit-header">
-              <span class="crit-id">${c.criterion}</span>
-              <span class="badge ${statusClass}">${c.status}</span>
-            </div>
-            <div class="crit-label">${c.label}</div>
-            ${valueStr}
-            <div class="crit-details">${detailStr}</div>
-          </div>`;
-      }
-
-      panel.innerHTML = `
-        <div class="overall-banner ${passClass}">
-          <span>${passLabel} | ${r.formation_name}</span>
-          <span>${summary}</span>
+      <div class="fmeta">
+        <div class="fname-row">
+          <input type="text" id="formation_name_input" placeholder="Formation name (e.g. Sleipner Utsira)" value="Sleipner Utsira" />
         </div>
-        <div class="criteria-grid">${cards}</div>`;
+        <div class="ex-row">
+          <button class="ex-btn" onclick="loadExample('sleipner')">&#x25B6; Sleipner Utsira</button>
+          <button class="ex-btn" onclick="loadExample('mt_simon')">&#x25B6; Mt. Simon</button>
+          <button class="ex-btn" onclick="loadExample('otway')">&#x25B6; Otway Basin</button>
+          <button class="ex-btn" onclick="clearForm()">&#x2715; Clear</button>
+        </div>
+      </div>
+
+      <nav class="tab-nav">
+        <button class="tab-btn active" onclick="showTab('t-geo',this)">C1 Geomech</button>
+        <button class="tab-btn" onclick="showTab('t-seal',this)">C2/C7 Seal</button>
+        <button class="tab-btn" onclick="showTab('t-res',this)">C3/C8/C9 Reservoir</button>
+        <button class="tab-btn" onclick="showTab('t-fluid',this)">C4/C5/C6 Fluid</button>
+        <button class="tab-btn" onclick="showTab('t-mon',this)">C10 Monitoring</button>
+        <button class="tab-btn" onclick="showTab('t-permit',this)">C11–C14 Permit</button>
+      </nav>
+
+      <!-- TAB 1: Geomechanics -->
+      <div class="tab-panel active" id="t-geo">
+        <div class="fg">
+          <div class="fg-title">In-Situ Stress State</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">&#963;<sub>1</sub> max principal stress</span><span class="fu">MPa</span><input type="number" id="sigma1_MPa" value="28" step="0.5" /></label>
+            <label class="f"><span class="fn">&#963;<sub>3</sub> min principal stress</span><span class="fu">MPa</span><input type="number" id="sigma3_MPa" value="18" step="0.5" /></label>
+            <label class="f"><span class="fn">P<sub>init</sub> initial pore pressure</span><span class="fu">MPa</span><input type="number" id="P_init_MPa" value="9.8" step="0.1" /></label>
+            <label class="f"><span class="fn">&#946; fault dip angle</span><span class="fu">degrees</span><input type="number" id="beta_deg" value="30" step="1" /></label>
+            <label class="f"><span class="fn">&#956;<sub>f</sub> friction coefficient</span><span class="fu">dimensionless</span><input type="number" id="mu_f" value="0.65" step="0.01" /></label>
+            <label class="f"><span class="fn">C<sub>0</sub> cohesion</span><span class="fu">MPa (0 = pre-existing fault)</span><input type="number" id="C0_MPa" value="0" step="0.1" /></label>
+            <label class="f"><span class="fn">&#945;<sub>Biot</sub> poroelastic coeff</span><span class="fu">dimensionless</span><input type="number" id="alpha_biot" value="0.75" step="0.01" /></label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">Thermoelastic Parameters <span class="opt" style="font-size:0.65rem;text-transform:none;letter-spacing:0">optional</span></div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">&#916;T Joule-Thomson cooling <span class="opt">opt</span></span><span class="fu">°C (negative = cooling)</span><input type="number" id="delta_T_C" value="-10" step="1" /></label>
+            <label class="f"><span class="fn">E Young&apos;s modulus <span class="opt">opt</span></span><span class="fu">GPa (default 20)</span><input type="number" id="E_GPa" value="20" step="1" /></label>
+            <label class="f"><span class="fn">&#945;<sub>T</sub> thermal expansion <span class="opt">opt</span></span><span class="fu">1/°C (default 1e-5)</span><input type="number" id="alpha_T" value="0.00001" step="0.000001" /></label>
+            <label class="f"><span class="fn">&#957; Poisson&apos;s ratio <span class="opt">opt</span></span><span class="fu">dimensionless (default 0.25)</span><input type="number" id="nu_poisson" value="0.25" step="0.01" /></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Seal & Capillary -->
+      <div class="tab-panel" id="t-seal">
+        <div class="fg">
+          <div class="fg-title">Caprock Properties (C2 Seal Integrity)</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">k<sub>cap</sub> caprock permeability</span><span class="fu">mD (typical: 1e-6 to 0.001)</span><input type="number" id="k_cap_mD" value="0.000001" step="0.000001" /></label>
+            <label class="f"><span class="fn">&#966;<sub>cap</sub> caprock porosity</span><span class="fu">fraction (0–1)</span><input type="number" id="phi_cap_frac" value="0.08" step="0.01" /></label>
+            <label class="f"><span class="fn">IFT CO<sub>2</sub>-brine interfacial tension</span><span class="fu">mN/m</span><input type="number" id="IFT_mNm" value="30" step="1" /></label>
+            <label class="f"><span class="fn">&#952; contact angle</span><span class="fu">degrees</span><input type="number" id="theta_deg" value="15" step="1" /></label>
+            <label class="f">
+              <span class="fn">Caprock lithology <span class="opt">opt</span></span>
+              <span class="fu">Carbonate requires MICP r35</span>
+              <select id="caprock_lithology"><option value="">sandstone (default)</option><option value="sandstone">sandstone</option><option value="carbonate">carbonate</option></select>
+            </label>
+            <label class="f"><span class="fn">r<sub>35</sub> MICP pore throat <span class="opt">opt</span></span><span class="fu">&#956;m (bypasses Pittman if supplied)</span><input type="number" id="r35_cap_um" placeholder="leave blank to auto-compute" step="0.01" /></label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">Capillary Seal Overpressure Margin (C7)</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">Plume column thickness</span><span class="fu">m (CO<sub>2</sub> column height)</span><input type="number" id="plume_thickness_m" value="40" step="5" /></label>
+            <label class="f"><span class="fn">&#916;P<sub>inj</sub> injection overpressure <span class="opt">opt</span></span><span class="fu">Pa (default 0)</span><input type="number" id="delta_P_inj_Pa" value="500000" step="10000" /></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Reservoir / Injectivity / Capacity -->
+      <div class="tab-panel" id="t-res">
+        <div class="fg">
+          <div class="fg-title">Reservoir Properties</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">k<sub>res</sub> permeability</span><span class="fu">mD</span><input type="number" id="k_res_mD" value="2000" step="10" /></label>
+            <label class="f"><span class="fn">&#966;<sub>res</sub> porosity</span><span class="fu">fraction</span><input type="number" id="phi_res_frac" value="0.37" step="0.01" /></label>
+            <label class="f"><span class="fn">h net pay thickness</span><span class="fu">m</span><input type="number" id="h_m" value="250" step="5" /></label>
+            <label class="f"><span class="fn">Area reservoir extent</span><span class="fu">km²</span><input type="number" id="area_km2" value="100" step="1" /></label>
+            <label class="f"><span class="fn">c<sub>t</sub> total compressibility</span><span class="fu">Pa⁻¹ &times; 10⁻¹⁰</span><input type="number" id="ct_1e10" value="5" step="0.5" /></label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">Injection &amp; AoR (C3)</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">Q injection rate</span><span class="fu">m³/s</span><input type="number" id="Q_m3s" value="0.024" step="0.001" /></label>
+            <label class="f"><span class="fn">t<sub>inj</sub> injection period</span><span class="fu">years</span><input type="number" id="t_years" value="8" step="0.5" /></label>
+            <label class="f"><span class="fn">S<sub>CO2</sub> max CO<sub>2</sub> saturation <span class="opt">opt</span></span><span class="fu">fraction (default 0.65)</span><input type="number" id="S_CO2" value="0.65" step="0.01" /></label>
+            <label class="f"><span class="fn">r<sub>permitted</sub> regulatory AoR <span class="opt">opt</span></span><span class="fu">m (enables C3 pass/fail)</span><input type="number" id="r_permitted_m" value="20000" step="500" /></label>
+            <label class="f"><span class="fn">&#916;P<sub>crit</sub> AoR pressure threshold <span class="opt">opt</span></span><span class="fu">MPa (default 0.1)</span><input type="number" id="dP_crit_MPa" value="0.1" step="0.01" /></label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">Storage Capacity (C8)</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">E<sub>vol</sub> volumetric efficiency</span><span class="fu">fraction (typical: 0.01–0.1)</span><input type="number" id="E_vol" value="0.02" step="0.005" /></label>
+            <label class="f"><span class="fn">V<sub>target</sub> storage target <span class="opt">opt</span></span><span class="fu">Mt (enables C8 pass/fail)</span><input type="number" id="V_target_Mt" value="10" step="1" /></label>
+            <label class="f"><span class="fn">V<sub>DP</sub> Dykstra-Parsons coeff <span class="opt">opt</span></span><span class="fu">0–1 (&gt;0.5 triggers NSR)</span><input type="number" id="V_DP" value="0.30" step="0.01" /></label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">Injectivity Index (C9)</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">r<sub>e</sub> drainage radius <span class="opt">opt</span></span><span class="fu">m (default 1000)</span><input type="number" id="r_e_m" value="1000" step="100" /></label>
+            <label class="f"><span class="fn">r<sub>w</sub> wellbore radius <span class="opt">opt</span></span><span class="fu">m (default 0.1)</span><input type="number" id="r_w_m" value="0.1" step="0.01" /></label>
+            <label class="f"><span class="fn">Skin factor <span class="opt">opt</span></span><span class="fu">dimensionless (default 0)</span><input type="number" id="skin" value="0" step="0.5" /></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: Fluid & Phase -->
+      <div class="tab-panel" id="t-fluid">
+        <div class="fg">
+          <div class="fg-title">Reservoir Conditions &amp; Phase Check (C6)</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">T<sub>res</sub> reservoir temperature</span><span class="fu">°C (must be &gt;30.98 for supercritical)</span><input type="number" id="T_C" value="37" step="1" /></label>
+            <label class="f"><span class="fn">P<sub>res</sub> reservoir pressure</span><span class="fu">MPa (must be &gt;7.38 for supercritical)</span><input type="number" id="P_MPa" value="10" step="0.5" /></label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">CO<sub>2</sub> &amp; Brine Fluid Properties</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">&#961;<sub>CO2</sub> CO<sub>2</sub> density</span><span class="fu">kg/m³ (0 = auto from PR EOS)</span><input type="number" id="rho_CO2_kgm3" value="720" step="10" /></label>
+            <label class="f"><span class="fn">&#956;<sub>CO2</sub> CO<sub>2</sub> viscosity</span><span class="fu">&#956;Pa·s (0 = auto from Fenghour)</span><input type="number" id="mu_CO2_uPas" value="55" step="1" /></label>
+            <label class="f"><span class="fn">&#956;<sub>brine</sub> brine viscosity</span><span class="fu">mPa·s</span><input type="number" id="mu_brine_mPas" value="0.8" step="0.05" /></label>
+            <label class="f"><span class="fn">&#961;<sub>brine</sub> brine density <span class="opt">opt</span></span><span class="fu">kg/m³ (default 1020)</span><input type="number" id="rho_brine_kgm3" value="1020" step="5" /></label>
+            <label class="f"><span class="fn">&#916;&#961; buoyancy density contrast</span><span class="fu">kg/m³ (CO<sub>2</sub>-sat brine minus brine)</span><input type="number" id="delta_rho_kgm3" value="10" step="0.5" /></label>
+            <label class="f"><span class="fn">D<sub>CO2</sub> diffusivity in brine</span><span class="fu">m²/s &times; 10⁻⁹</span><input type="number" id="D_1e9" value="2" step="0.1" /></label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">Convective Dissolution (C4)</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">k<sub>v</sub>/k<sub>h</sub> permeability ratio <span class="opt">opt</span></span><span class="fu">default 0.1</span><input type="number" id="kv_kh_ratio" value="0.1" step="0.01" /></label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">Halite Precipitation (C5 &mdash; Zeidouni 2009 Eq. 26)</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">&#967;<sub>w</sub> water mass fraction in CO<sub>2</sub> <span class="opt">opt</span></span><span class="fu">dimensionless (e.g. 4.2e-4)</span><input type="number" id="chi_w" value="0.00042" step="0.00001" /></label>
+            <label class="f"><span class="fn">S<sub>wi</sub> irreducible water sat. <span class="opt">opt</span></span><span class="fu">fraction (default 0.20)</span><input type="number" id="S_wi" value="0.20" step="0.01" /></label>
+            <label class="f"><span class="fn">r<sub>crit</sub> critical drying radius <span class="opt">opt</span></span><span class="fu">m (default 1.0)</span><input type="number" id="r_crit_m" value="1.0" step="0.1" /></label>
+            <label class="f"><span class="fn">t<sub>permit</sub> permit duration <span class="opt">opt</span></span><span class="fu">years (default 30)</span><input type="number" id="t_permit_years" value="30" step="1" /></label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">Convenience</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">Depth to reservoir top <span class="opt">opt</span></span><span class="fu">m</span><input type="number" id="depth_m" value="800" step="10" /></label>
+            <label class="f"><span class="fn">Salinity TDS <span class="opt">opt</span></span><span class="fu">ppm</span><input type="number" id="salinity_ppm" value="32000" step="1000" /></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: Monitoring -->
+      <div class="tab-panel" id="t-mon">
+        <div class="fg">
+          <div class="fg-title">Plume Detectability (C10)</div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">Plume footprint area</span><span class="fu">km²</span><input type="number" id="plume_area_km2" value="4" step="0.5" /></label>
+            <label class="f">
+              <span class="fn">Monitoring technology</span>
+              <span class="fu">Sets detection thresholds</span>
+              <select id="monitor_type">
+                <option value="4D_seismic">4D Seismic (&ge;0.10 km², &ge;1 m)</option>
+                <option value="gravity">Gravity (&ge;0.50 km², &ge;5 m)</option>
+                <option value="InSAR">InSAR (&ge;1.00 km², &ge;10 m)</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fg-title">Override Thresholds <span class="opt" style="font-size:0.65rem;text-transform:none;letter-spacing:0">optional — site-specific sensitivity</span></div>
+          <div class="fgrid">
+            <label class="f"><span class="fn">Override min area <span class="opt">opt</span></span><span class="fu">km²</span><input type="number" id="monitor_min_area_km2" placeholder="default from technology" step="0.01" /></label>
+            <label class="f"><span class="fn">Override min thickness <span class="opt">opt</span></span><span class="fu">m</span><input type="number" id="monitor_min_thickness_m" placeholder="default from technology" step="0.1" /></label>
+          </div>
+        </div>
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:0.65rem;font-size:0.74rem;color:#0369a1;line-height:1.6;">
+          <strong>Thresholds per EPA 40 CFR 146.90(a) and DNV-RP-J203 §6.1.</strong><br/>
+          Pass condition: plume area &ge; min area <em>AND</em> plume column thickness &ge; min thickness.
+        </div>
+      </div>
+
+      <!-- TAB 6: Permit -->
+      <div class="tab-panel" id="t-permit">
+        <div style="font-size:0.76rem;color:var(--muted);margin-bottom:0.85rem;line-height:1.6;">
+          C11–C14 are regulatory permit inputs. Select <strong>Yes</strong> (PASS), <strong>No</strong> (FAIL), or <strong>N/A</strong> if not yet assessed.
+        </div>
+        <div class="permit-item">
+          <span class="pnum">C11</span>
+          <div><div class="plabel">USDW Exemption</div><div class="pdesc">Underground source of drinking water exemption obtained (EPA UIC Class VI)</div></div>
+          <select id="c11_sel" style="width:90px"><option value="">N/A</option><option value="yes" selected>Yes</option><option value="no">No</option></select>
+        </div>
+        <div class="permit-item">
+          <span class="pnum">C12</span>
+          <div><div class="plabel">Legacy Well Assessment</div><div class="pdesc">No inadequately plugged legacy wells within the Area of Review</div></div>
+          <select id="c12_sel" style="width:90px"><option value="">N/A</option><option value="yes" selected>Yes</option><option value="no">No</option></select>
+        </div>
+        <div class="permit-item">
+          <span class="pnum">C13</span>
+          <div><div class="plabel">Pore-Space / Mineral Rights</div><div class="pdesc">Subsurface mineral rights and pore-space ownership secured</div></div>
+          <select id="c13_sel" style="width:90px"><option value="">N/A</option><option value="yes" selected>Yes</option><option value="no">No</option></select>
+        </div>
+        <div class="permit-item">
+          <span class="pnum">C14</span>
+          <div><div class="plabel">Environmental Impact Assessment</div><div class="pdesc">EIA or equivalent regulatory environmental review complete</div></div>
+          <select id="c14_sel" style="width:90px"><option value="">N/A</option><option value="yes" selected>Yes</option><option value="no">No</option></select>
+        </div>
+      </div>
+
+      <div class="run-wrap">
+        <button class="run-btn" onclick="runCalc()">
+          &#x25B6;&nbsp; Run 14-Criterion Screening
+        </button>
+      </div>
+    </aside>
+
+    <!-- RESULTS PANEL -->
+    <section class="results-panel" id="results">
+      <div class="rph">
+        <div class="rph-icon">&#x1F9EA;</div>
+        <h3>No screening results yet</h3>
+        <p>Load an example formation or enter your parameters, then click <strong>Run 14-Criterion Screening</strong> to evaluate the site.</p>
+        <p style="margin-top:0.5rem;font-size:0.73rem;">Each criterion applies a closed-form analytical equation aligned with EPA 40 CFR 146, DNV-RP-J203, and the SPE CCUS screening literature.</p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="fc">
+      <h4>About This Tool</h4>
+      <p>
+        This open-source calculator implements the 14-criterion CO<sub>2</sub> geological storage screening framework
+        developed for Paper 1 of Daniel T. Olagunju's doctoral research at Universiti Teknologi PETRONAS.
+        The framework was validated against 16 global saline aquifer formations spanning North America,
+        Europe, Australia, and Asia.
+      </p>
+      <p style="margin-top:0.6rem;">
+        All 10 physics criteria (C1–C10) are computed analytically from closed-form equations.
+        No machine-learning surrogates. No black boxes.
+        C11–C14 are regulatory permit checklists aligned with EPA UIC Class VI and equivalent frameworks.
+      </p>
+      <div class="collab-box" style="margin-top:1rem;">
+        <h5>&#x1F91D; Collaborate with the Author</h5>
+        <p>
+          Are you working on CCUS site assessment, saline aquifer characterisation, or CO<sub>2</sub> storage
+          regulation? I welcome research collaboration, dataset sharing, and peer review.
+        </p>
+        <a class="collab-link" href="mailto:daniel_25013118@utp.edu.my?subject=CCUS Collaboration Inquiry">
+          &#x2709;&nbsp; Get in Touch
+        </a>
+      </div>
+    </div>
+
+    <div class="fc">
+      <h4>Key References</h4>
+      <ul>
+        <li>Bachu, S. (2003). <em>Environ. Geology</em> 44, 277–289</li>
+        <li>Batzle &amp; Wang (1992). <em>Geophysics</em> 57, 1396–1408</li>
+        <li>DNV-RP-J203 (2012). Geological storage of CO<sub>2</sub></li>
+        <li>EPA 40 CFR Part 146 — UIC Class VI Rules</li>
+        <li>Fjaer et al. (2008). <em>Petroleum Related Rock Mechanics</em></li>
+        <li>Pittman, E.D. (1992). <em>AAPG Bull.</em> 76, 191–198</li>
+        <li>Span &amp; Wagner (1996). <em>J. Phys. Chem. Ref. Data</em> 25</li>
+        <li>Zeidouni et al. (2009). <em>Int. J. Greenhouse Gas Ctrl.</em></li>
+        <li>Arts et al. (2004). <em>Energy</em> 29, 1383–1392</li>
+        <li>Cooper &amp; Jacob (1946). <em>Trans. AGU</em> 27, 526–534</li>
+      </ul>
+    </div>
+
+    <div class="fc">
+      <h4>Criterion Summary</h4>
+      <ul>
+        <li><strong>C1</strong> Mohr-Coulomb fault reactivation</li>
+        <li><strong>C2</strong> Caprock seal integrity (Winland r35)</li>
+        <li><strong>C3</strong> Area of Review (Cooper-Jacob)</li>
+        <li><strong>C4</strong> Convective dissolution (Rayleigh-Darcy)</li>
+        <li><strong>C5</strong> Halite precipitation (Zeidouni 2009)</li>
+        <li><strong>C6</strong> Supercritical phase (Span-Wagner)</li>
+        <li><strong>C7</strong> Capillary seal overpressure</li>
+        <li><strong>C8</strong> Volumetric storage capacity</li>
+        <li><strong>C9</strong> Injectivity index (Darcy radial)</li>
+        <li><strong>C10</strong> Monitoring feasibility (plume)</li>
+        <li><strong>C11</strong> USDW exemption</li>
+        <li><strong>C12</strong> Legacy well assessment</li>
+        <li><strong>C13</strong> Pore-space rights</li>
+        <li><strong>C14</strong> EIA complete</li>
+      </ul>
+    </div>
+  </div>
+  <div class="fbot">
+    <span>CO<sub>2</sub> Storage Screening Calculator</span>
+    <span>&copy; 2027 Daniel T. Olagunju &mdash; Universiti Teknologi PETRONAS</span>
+    <span>Open source &mdash; <a href="https://github.com/todak2000/co2-screening-calculator" style="color:var(--teal)" target="_blank">GitHub</a> &mdash; SPE CCUS 2027</span>
+  </div>
+</footer>
+
+<script type="module">
+  import { runScreening } from './src/main.ts';
+
+  // Tab switching
+  window.showTab = function(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  };
+
+  // Expand/collapse criterion cards
+  window.toggleCard = function(el) {
+    el.classList.toggle('open');
+  };
+
+  // ---- Example formations ----
+  const EXAMPLES = {
+    sleipner: {
+      formation_name_input: 'Sleipner Utsira (North Sea, Norway)',
+      sigma1_MPa: 28, sigma3_MPa: 18, P_init_MPa: 9.8, beta_deg: 30,
+      mu_f: 0.65, C0_MPa: 0, alpha_biot: 0.75, delta_T_C: -10,
+      E_GPa: 20, alpha_T: 0.00001, nu_poisson: 0.25,
+      k_cap_mD: 0.000001, phi_cap_frac: 0.08, IFT_mNm: 30, theta_deg: 15,
+      caprock_lithology: 'sandstone',
+      plume_thickness_m: 40, delta_P_inj_Pa: 500000,
+      k_res_mD: 2000, phi_res_frac: 0.37, h_m: 250, area_km2: 100,
+      Q_m3s: 0.024, t_years: 8, ct_1e10: 5, E_vol: 0.02,
+      V_DP: 0.30, S_CO2: 0.65, r_permitted_m: 20000, dP_crit_MPa: 0.1,
+      V_target_Mt: 10, r_e_m: 1000, r_w_m: 0.1, skin: 0,
+      T_C: 37, P_MPa: 10, rho_CO2_kgm3: 720, mu_CO2_uPas: 55,
+      mu_brine_mPas: 0.8, rho_brine_kgm3: 1020, delta_rho_kgm3: 10, D_1e9: 2,
+      kv_kh_ratio: 0.1, chi_w: 0.00042, S_wi: 0.20, r_crit_m: 1.0, t_permit_years: 30,
+      plume_area_km2: 4, monitor_type: '4D_seismic',
+      depth_m: 800, salinity_ppm: 32000,
+      c11_sel: 'yes', c12_sel: 'yes', c13_sel: 'yes', c14_sel: 'yes',
+    },
+    mt_simon: {
+      formation_name_input: 'Mt. Simon Sandstone (Illinois Basin, USA)',
+      sigma1_MPa: 38, sigma3_MPa: 24, P_init_MPa: 20, beta_deg: 30,
+      mu_f: 0.65, C0_MPa: 0, alpha_biot: 0.70, delta_T_C: -15,
+      E_GPa: 25, alpha_T: 0.000012, nu_poisson: 0.27,
+      k_cap_mD: 0.000001, phi_cap_frac: 0.10, IFT_mNm: 32, theta_deg: 15,
+      caprock_lithology: 'sandstone',
+      plume_thickness_m: 50, delta_P_inj_Pa: 800000,
+      k_res_mD: 35, phi_res_frac: 0.22, h_m: 150, area_km2: 12,
+      Q_m3s: 0.015, t_years: 3, ct_1e10: 8, E_vol: 0.03,
+      V_DP: 0.45, S_CO2: 0.60, r_permitted_m: 15000, dP_crit_MPa: 0.1,
+      V_target_Mt: 5, r_e_m: 1000, r_w_m: 0.1, skin: 2,
+      T_C: 54, P_MPa: 22, rho_CO2_kgm3: 750, mu_CO2_uPas: 65,
+      mu_brine_mPas: 0.9, rho_brine_kgm3: 1050, delta_rho_kgm3: 8.5, D_1e9: 2,
+      kv_kh_ratio: 0.08, chi_w: 0.00038, S_wi: 0.25, r_crit_m: 1.0, t_permit_years: 30,
+      plume_area_km2: 1.5, monitor_type: '4D_seismic',
+      depth_m: 2100, salinity_ppm: 120000,
+      c11_sel: 'yes', c12_sel: 'yes', c13_sel: 'yes', c14_sel: 'no',
+    },
+    otway: {
+      formation_name_input: 'Otway Basin (Naylor Field, Australia)',
+      sigma1_MPa: 32, sigma3_MPa: 20, P_init_MPa: 14, beta_deg: 35,
+      mu_f: 0.60, C0_MPa: 0, alpha_biot: 0.72, delta_T_C: -12,
+      E_GPa: 22, alpha_T: 0.000011, nu_poisson: 0.26,
+      k_cap_mD: 0.000001, phi_cap_frac: 0.09, IFT_mNm: 28, theta_deg: 20,
+      caprock_lithology: 'sandstone',
+      plume_thickness_m: 30, delta_P_inj_Pa: 400000,
+      k_res_mD: 120, phi_res_frac: 0.25, h_m: 80, area_km2: 8,
+      Q_m3s: 0.005, t_years: 2, ct_1e10: 6, E_vol: 0.025,
+      V_DP: 0.35, S_CO2: 0.62, r_permitted_m: 12000, dP_crit_MPa: 0.1,
+      V_target_Mt: 0.1, r_e_m: 1000, r_w_m: 0.1, skin: 1,
+      T_C: 56, P_MPa: 15, rho_CO2_kgm3: 730, mu_CO2_uPas: 60,
+      mu_brine_mPas: 0.85, rho_brine_kgm3: 1030, delta_rho_kgm3: 9, D_1e9: 2,
+      kv_kh_ratio: 0.12, chi_w: 0.00045, S_wi: 0.22, r_crit_m: 1.0, t_permit_years: 15,
+      plume_area_km2: 0.5, monitor_type: '4D_seismic',
+      depth_m: 1450, salinity_ppm: 45000,
+      c11_sel: '', c12_sel: 'yes', c13_sel: 'yes', c14_sel: '',
+    },
+  };
+
+  window.loadExample = function(name) {
+    const ex = EXAMPLES[name];
+    if (!ex) return;
+    for (const [k, v] of Object.entries(ex)) {
+      const el = document.getElementById(k);
+      if (!el) continue;
+      el.value = v;
+    }
+  };
+
+  window.clearForm = function() {
+    document.querySelectorAll('.tab-panel input[type="number"]').forEach(el => el.value = '');
+    document.getElementById('formation_name_input').value = '';
+  };
+
+  // ---- Gather inputs ----
+  const g    = id => { const el = document.getElementById(id); return el ? parseFloat(el.value) : NaN; };
+  const gopt = id => { const el = document.getElementById(id); if (!el || el.value === '') return undefined; const v = parseFloat(el.value); return isNaN(v) ? undefined : v; };
+  const gs   = id => { const el = document.getElementById(id); return (el && el.value && el.value !== '') ? el.value : undefined; };
+  const gpermit = id => { const el = document.getElementById(id); if (!el || el.value === '') return undefined; return el.value === 'yes'; };
+
+  window.runCalc = function() {
+    const name = (document.getElementById('formation_name_input').value || 'Unnamed Formation').trim();
+
+    const f = {
+      // C1 Geomechanics
+      sigma1_MPa:   g('sigma1_MPa'),
+      sigma3_MPa:   g('sigma3_MPa'),
+      P_init_MPa:   g('P_init_MPa'),
+      beta_deg:     g('beta_deg'),
+      mu_f:         g('mu_f'),
+      C0_MPa:       g('C0_MPa'),
+      alpha_biot:   g('alpha_biot'),
+      delta_T_C:    gopt('delta_T_C'),
+      E_GPa:        gopt('E_GPa'),
+      alpha_T:      gopt('alpha_T'),
+      nu_poisson:   gopt('nu_poisson'),
+      // C2/C7 Seal
+      k_cap_mD:     g('k_cap_mD'),
+      phi_cap_frac: g('phi_cap_frac'),
+      IFT_mNm:      g('IFT_mNm'),
+      theta_deg:    g('theta_deg'),
+      r35_cap_um:   gopt('r35_cap_um'),
+      caprock_lithology: gs('caprock_lithology'),
+      plume_thickness_m: g('plume_thickness_m'),
+      delta_P_inj_Pa: gopt('delta_P_inj_Pa'),
+      // C3 AoR
+      Q_m3s:        g('Q_m3s'),
+      t_s:          g('t_years') * 3.1536e7,
+      k_res_mD:     g('k_res_mD'),
+      phi_res_frac: g('phi_res_frac'),
+      ct_Pa:        g('ct_1e10') * 1e-10,
+      h_m:          g('h_m'),
+      mu_brine_Pa_s: g('mu_brine_mPas') * 1e-3,
+      S_CO2:        gopt('S_CO2'),
+      r_permitted_m: gopt('r_permitted_m'),
+      dP_crit_Pa:   g('dP_crit_MPa') * 1e6,
+      // C4 Dissolution
+      delta_rho_kgm3: g('delta_rho_kgm3'),
+      D_m:          g('D_1e9') * 1e-9,
+      kv_kh_ratio:  gopt('kv_kh_ratio'),
+      V_DP:         gopt('V_DP'),
+      // C5 Halite
+      chi_w:        gopt('chi_w'),
+      S_wi:         gopt('S_wi'),
+      rho_brine_kgm3: gopt('rho_brine_kgm3'),
+      r_crit_m:     gopt('r_crit_m'),
+      t_permit_s:   (() => { const y = gopt('t_permit_years'); return y !== undefined ? y * 3.1536e7 : undefined; })(),
+      // C6 Phase
+      T_C:          g('T_C'),
+      P_MPa:        g('P_MPa'),
+      // C8 Capacity
+      area_km2:     g('area_km2'),
+      rho_CO2_kgm3: g('rho_CO2_kgm3') || 0,
+      E_vol:        g('E_vol'),
+      V_target_Mt:  gopt('V_target_Mt'),
+      // C9 Injectivity
+      mu_CO2:       (() => { const v = g('mu_CO2_uPas'); return (v && v > 0) ? v * 1e-6 : undefined; })(),
+      r_e_m:        gopt('r_e_m'),
+      r_w_m:        gopt('r_w_m'),
+      skin:         gopt('skin'),
+      // C10 Monitoring
+      plume_area_km2: g('plume_area_km2'),
+      monitor_type: gs('monitor_type') || '4D_seismic',
+      monitor_min_area_km2:    gopt('monitor_min_area_km2'),
+      monitor_min_thickness_m: gopt('monitor_min_thickness_m'),
+      // Convenience
+      depth_m:      gopt('depth_m'),
+      salinity_ppm: gopt('salinity_ppm'),
+      // C11-C14
+      c11_usdw_exempt:   gpermit('c11_sel'),
+      c12_legacy_wells:  gpermit('c12_sel'),
+      c13_mineral_rights: gpermit('c13_sel'),
+      c14_eia_complete:  gpermit('c14_sel'),
+    };
+
+    try {
+      const result = runScreening(f, name);
+      renderResults(result);
+    } catch(e) {
+      document.getElementById('results').innerHTML = `
+        <div style="padding:2rem;color:#dc2626;font-size:0.85rem;">
+          <strong>Calculation error:</strong> ${e.message}
+        </div>`;
+    }
+  };
+
+  // ---- Render results ----
+  function renderResults(r) {
+    const passClass = r.overall_pass ? 'pass' : 'fail';
+    const verdict   = r.overall_pass ? '&#x2713; SITE PASSES SCREENING' : '&#x2717; SITE FAILS SCREENING';
+
+    const banner = `
+      <div class="overall-banner ${passClass}">
+        <div class="ov-left">
+          <div class="ov-verdict">${verdict}</div>
+          <div class="ov-name">${r.formation_name}</div>
+        </div>
+        <div class="ov-stats">
+          <span class="stat">&#x2713; ${r.pass_count} PASS</span>
+          <span class="stat">&#x2717; ${r.fail_count} FAIL</span>
+          ${r.nsr_count > 0 ? `<span class="stat">&#x25CB; ${r.nsr_count} NSR</span>` : ''}
+          <span class="stat">14 Criteria</span>
+        </div>
+      </div>`;
+
+    let cards = '';
+    for (const c of r.criteria) {
+      const sc = c.status === 'N/A' ? 'NA' : c.status;
+      const valStr = c.value !== undefined
+        ? `<div class="cval">Value: <strong>${fmtNum(c.value)} ${c.unit ?? ''}</strong>${c.threshold !== undefined ? ` &nbsp;|&nbsp; Threshold: <strong>${fmtNum(c.threshold)} ${c.unit ?? ''}</strong>` : ''}</div>`
+        : '';
+      const detailRows = Object.entries(c.details)
+        .map(([k, v]) => `<div class="dr"><span class="dk">${k}</span><span class="dv">${typeof v === 'number' ? fmtNum(v) : String(v)}</span></div>`)
+        .join('');
+      const noteHtml = c.note ? `<div class="cnote">&#9432; ${c.note}</div>` : '';
+      cards += `
+        <div class="cc ${sc}" onclick="toggleCard(this)">
+          <div class="ch">
+            <span class="cid">${c.criterion}</span>
+            <span class="badge ${sc}">${c.status}</span>
+          </div>
+          <div class="clabel">${c.label}</div>
+          ${valStr}
+          <div class="expand-hint">Click to expand details &darr;</div>
+          <div class="cdetails">${detailRows}${noteHtml}</div>
+        </div>`;
     }
 
-    function fmtNum(v) {
-      if (typeof v !== 'number') return v;
-      if (Math.abs(v) >= 1000) return v.toFixed(0);
-      if (Math.abs(v) >= 1) return v.toFixed(3);
-      if (Math.abs(v) >= 0.001) return v.toFixed(5);
-      return v.toExponential(3);
-    }
-  </script>
+    const toolbar = `
+      <div class="rtoolbar">
+        <h3>Criterion Results &mdash; ${r.formation_name}</h3>
+        <div class="tbar-btns">
+          <button class="ic-btn" onclick="expandAll()">Expand All</button>
+          <button class="ic-btn" onclick="collapseAll()">Collapse All</button>
+          <button class="ic-btn" onclick="window.print()">&#x1F5A8; Print</button>
+        </div>
+      </div>`;
+
+    document.getElementById('results').innerHTML = `
+      <div class="rcontent">
+        ${banner}
+        ${toolbar}
+        <div class="cgrid">${cards}</div>
+      </div>`;
+  }
+
+  window.expandAll   = () => document.querySelectorAll('.cc').forEach(c => c.classList.add('open'));
+  window.collapseAll = () => document.querySelectorAll('.cc').forEach(c => c.classList.remove('open'));
+
+  function fmtNum(v) {
+    if (typeof v !== 'number') return String(v);
+    if (!isFinite(v)) return String(v);
+    const a = Math.abs(v);
+    if (a === 0) return '0';
+    if (a >= 1e6)  return v.toExponential(3);
+    if (a >= 1000) return v.toFixed(1);
+    if (a >= 1)    return v.toFixed(4);
+    if (a >= 1e-3) return v.toFixed(6);
+    return v.toExponential(3);
+  }
+
+  // Auto-load Sleipner on first visit
+  loadExample('sleipner');
+</script>
 </body>
 </html>
