@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CO2 Geological Storage Screening Calculator</title>
+  <style>
+    /* ===== Base ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --pass:   #2e7d32;
+      --fail:   #c62828;
+      --nsr:    #6a1b9a;
+      --na:     #555;
+      --bg:     #f5f5f5;
+      --card:   #fff;
+      --border: #ddd;
+      --font:   "Segoe UI", system-ui, sans-serif;
+    }
+    body { font-family: var(--font); background: var(--bg); color: #222; }
+    h1 { font-size: 1.3rem; font-weight: 700; }
+    h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    h3 { font-size: 0.9rem; font-weight: 600; color: #444; }
+
+    /* ===== Layout ===== */
+    .app-header {
+      background: #1a237e; color: #fff; padding: 0.75rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .app-header .subtitle { font-size: 0.75rem; opacity: 0.8; }
+    .print-btn {
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4);
+      color: #fff; padding: 0.35rem 0.9rem; border-radius: 4px; cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .print-btn:hover { background: rgba(255,255,255,0.25); }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ===== Input Panel ===== */
+    .input-panel { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .example-row { display: flex; gap: 0.5rem; margin-bottom: 0.25rem; }
+    .example-btn {
+      flex: 1; background: #e8eaf6; border: 1px solid #9fa8da; border-radius: 4px;
+      cursor: pointer; padding: 0.4rem; font-size: 0.78rem; font-weight: 600;
+      color: #283593;
+    }
+    .example-btn:hover { background: #c5cae9; }
+
+    details { background: var(--card); border: 1px solid var(--border); border-radius: 6px; }
+    summary {
+      padding: 0.6rem 0.8rem; cursor: pointer; font-size: 0.85rem;
+      font-weight: 600; user-select: none; list-style: none;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    summary::before { content: "▶"; font-size: 0.6rem; transition: transform 0.15s; }
+    details[open] summary::before { transform: rotate(90deg); }
+    .fields { padding: 0.5rem 0.8rem 0.8rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 0.6rem; }
+    label { font-size: 0.75rem; color: #444; display: flex; flex-direction: column; gap: 2px; }
+    label span { font-weight: 500; }
+    input[type="number"], input[type="checkbox"] { border: 1px solid var(--border); border-radius: 3px; }
+    input[type="number"] {
+      padding: 0.25rem 0.4rem; font-size: 0.8rem; width: 100%;
+    }
+    .checkbox-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; }
+
+    .run-btn {
+      background: #1a237e; color: #fff; border: none; border-radius: 6px;
+      padding: 0.65rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; width: 100%;
+    }
+    .run-btn:hover { background: #283593; }
+
+    /* ===== Results Panel ===== */
+    .results-panel { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .overall-banner {
+      border-radius: 8px; padding: 0.75rem 1rem;
+      font-weight: 700; font-size: 1rem; color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .overall-banner.pass { background: var(--pass); }
+    .overall-banner.fail { background: var(--fail); }
+
+    .criteria-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.6rem;
+    }
+    .crit-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+      padding: 0.6rem 0.8rem; border-left: 4px solid var(--border);
+    }
+    .crit-card.PASS  { border-left-color: var(--pass); }
+    .crit-card.FAIL  { border-left-color: var(--fail); }
+    .crit-card.NSR   { border-left-color: var(--nsr); }
+    .crit-card.NA    { border-left-color: var(--na); }
+
+    .crit-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.3rem; }
+    .crit-id { font-size: 0.7rem; font-weight: 700; color: #666; }
+    .badge {
+      font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; color: #fff;
+    }
+    .badge.PASS { background: var(--pass); }
+    .badge.FAIL { background: var(--fail); }
+    .badge.NSR  { background: var(--nsr); }
+    .badge.NA   { background: var(--na); }
+
+    .crit-label { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .crit-value { font-size: 0.78rem; color: #444; }
+    .crit-details { margin-top: 0.3rem; font-size: 0.72rem; color: #666; line-height: 1.5; }
+
+    /* ===== Print ===== */
+    @media print {
+      .app-header .print-btn, .input-panel, .example-row { display: none !important; }
+      .main-layout { grid-template-columns: 1fr; padding: 0; }
+      .criteria-grid { grid-template-columns: repeat(3, 1fr); }
+      body { background: #fff; font-size: 10pt; }
+      .crit-card { break-inside: avoid; }
+      @page { margin: 15mm; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>CO2 Geological Storage Screening Calculator</h1>
+      <div class="subtitle">14-Criterion Regulatory-Aligned Matrix | SPE CCUS 2027 | Physics-Based</div>
+    </div>
+    <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+  </header>
+
+  <div class="main-layout">
+    <!-- INPUT PANEL -->
+    <div class="input-panel">
+      <div class="example-row">
+        <button class="example-btn" onclick="loadExample('sleipner')">Load: Sleipner Utsira</button>
+        <button class="example-btn" onclick="loadExample('mt_simon')">Load: Mt. Simon</button>
+      </div>
+
+      <!-- C1 Geomechanical -->
+      <details open>
+        <summary>C1 Geomechanical</summary>
+        <div class="fields">
+          <label><span>σ₁ (MPa)</span><input type="number" id="sigma1_MPa" value="28" step="0.5" /></label>
+          <label><span>σ₃ (MPa)</span><input type="number" id="sigma3_MPa" value="18" step="0.5" /></label>
+          <label><span>P_init (MPa)</span><input type="number" id="P_init_MPa" value="9.8" step="0.1" /></label>
+          <label><span>Fault dip β (°)</span><input type="number" id="beta_deg" value="30" step="1" /></label>
+          <label><span>μ_f</span><input type="number" id="mu_f" value="0.65" step="0.01" /></label>
+          <label><span>C₀ (MPa)</span><input type="number" id="C0_MPa" value="0" step="0.1" /></label>
+          <label><span>α_Biot</span><input type="number" id="alpha_biot" value="0.75" step="0.01" /></label>
+          <label><span>ΔT_JT (°C)</span><input type="number" id="delta_T_C" value="-15" step="1" /></label>
+        </div>
+      </details>
+
+      <!-- C2 Seal -->
+      <details open>
+        <summary>C2/C7 Seal &amp; Capillary</summary>
+        <div class="fields">
+          <label><span>k_cap (mD)</span><input type="number" id="k_cap_mD" value="0.0001" step="0.0001" /></label>
+          <label><span>φ_cap</span><input type="number" id="phi_cap_frac" value="0.06" step="0.01" /></label>
+          <label><span>IFT (mN/m)</span><input type="number" id="IFT_mNm" value="30" step="1" /></label>
+          <label><span>θ_contact (°)</span><input type="number" id="theta_deg" value="15" step="1" /></label>
+          <label><span>h_cap (m)</span><input type="number" id="h_cap_m" value="200" step="5" /></label>
+          <label><span>ΔP_cap (MPa)</span><input type="number" id="dP_cap_MPa" value="3" step="0.1" /></label>
+        </div>
+      </details>
+
+      <!-- Reservoir & Injection -->
+      <details open>
+        <summary>Reservoir &amp; Injection (C3–C5, C8–C9)</summary>
+        <div class="fields">
+          <label><span>k_res (mD)</span><input type="number" id="k_res_mD" value="2000" step="10" /></label>
+          <label><span>φ_res</span><input type="number" id="phi_res_frac" value="0.37" step="0.01" /></label>
+          <label><span>h_res (m)</span><input type="number" id="h_m" value="250" step="5" /></label>
+          <label><span>Area (km²)</span><input type="number" id="area_km2" value="100" step="1" /></label>
+          <label><span>Q (m³/s)</span><input type="number" id="Q_m3s" value="0.024" step="0.001" /></label>
+          <label><span>t_inj (years)</span><input type="number" id="t_years" value="8" step="0.5" /></label>
+          <label><span>c_t (Pa⁻¹ × 1e-10)</span><input type="number" id="ct_1e10" value="5" step="0.5" /></label>
+          <label><span>V_DP (0–1)</span><input type="number" id="V_DP" value="0.30" step="0.01" /></label>
+          <label><span>E_vol</span><input type="number" id="E_vol" value="0.02" step="0.005" /></label>
+          <label><span>ΔP_crit (MPa)</span><input type="number" id="dP_crit_MPa" value="0.1" step="0.01" /></label>
+        </div>
+      </details>
+
+      <!-- Fluid Properties -->
+      <details>
+        <summary>Fluid Properties (C4–C6)</summary>
+        <div class="fields">
+          <label><span>T_res (°C)</span><input type="number" id="T_C" value="37" step="1" /></label>
+          <label><span>P_res (MPa)</span><input type="number" id="P_MPa" value="10" step="0.5" /></label>
+          <label><span>ρ_CO2 (kg/m³) [0=auto]</span><input type="number" id="rho_CO2_kgm3" value="720" step="10" /></label>
+          <label><span>μ_CO2 (μPa·s) [0=auto]</span><input type="number" id="mu_CO2_uPas" value="55" step="1" /></label>
+          <label><span>μ_brine (mPa·s)</span><input type="number" id="mu_brine_mPas" value="0.8" step="0.05" /></label>
+          <label><span>Δρ CO2/brine (kg/m³)</span><input type="number" id="delta_rho_kgm3" value="10" step="0.5" /></label>
+          <label><span>D_CO2 (m²/s × 1e-9)</span><input type="number" id="D_1e9" value="2" step="0.1" /></label>
+          <label><span>Salinity (ppm TDS)</span><input type="number" id="salinity_ppm" value="32000" step="1000" /></label>
+        </div>
+      </details>
+
+      <!-- Monitoring & Plume -->
+      <details>
+        <summary>Monitoring &amp; Plume (C10)</summary>
+        <div class="fields">
+          <label><span>Depth top (m)</span><input type="number" id="depth_m" value="800" step="10" /></label>
+          <label><span>Plume area (km²)</span><input type="number" id="plume_area_km2" value="4" step="0.5" /></label>
+          <label><span>Plume thickness (m)</span><input type="number" id="plume_thickness_m" value="40" step="5" /></label>
+        </div>
+      </details>
+
+      <!-- Permit -->
+      <details>
+        <summary>Regulatory Permit (C11–C14)</summary>
+        <div class="fields" style="grid-template-columns:1fr;">
+          <label class="checkbox-row"><input type="checkbox" id="c11" checked /> C11: USDW Exemption obtained</label>
+          <label class="checkbox-row"><input type="checkbox" id="c12" checked /> C12: No uncemented legacy wells within AoR</label>
+          <label class="checkbox-row"><input type="checkbox" id="c13" checked /> C13: Pore-space mineral rights secured</label>
+          <label class="checkbox-row"><input type="checkbox" id="c14" checked /> C14: EIA complete</label>
+        </div>
+      </details>
+
+      <button class="run-btn" onclick="runCalc()">Run Screening</button>
+    </div>
+
+    <!-- RESULTS PANEL -->
+    <div class="results-panel" id="results">
+      <div style="color:#888; font-size:0.9rem; padding: 2rem; text-align:center;">
+        Select a formation example or enter parameters, then click <strong>Run Screening</strong>.
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { runScreening } from './src/main.ts';
+
+    const EXAMPLES = {
+      sleipner: {
+        sigma1_MPa: 28, sigma3_MPa: 18, P_init_MPa: 9.8, beta_deg: 30, mu_f: 0.65,
+        C0_MPa: 0, alpha_biot: 0.75, delta_T_C: -10,
+        k_cap_mD: 0.0001, phi_cap_frac: 0.06, IFT_mNm: 30, theta_deg: 15,
+        h_cap_m: 200, dP_cap_MPa: 3,
+        k_res_mD: 2000, phi_res_frac: 0.37, h_m: 250, area_km2: 100,
+        Q_m3s: 0.024, t_years: 8, ct_1e10: 5, V_DP: 0.30, E_vol: 0.02, dP_crit_MPa: 0.1,
+        T_C: 37, P_MPa: 10, rho_CO2_kgm3: 720, mu_CO2_uPas: 55,
+        mu_brine_mPas: 0.8, delta_rho_kgm3: 10, D_1e9: 2, salinity_ppm: 32000,
+        depth_m: 800, plume_area_km2: 4, plume_thickness_m: 40,
+        c11: true, c12: true, c13: true, c14: true,
+      },
+      mt_simon: {
+        sigma1_MPa: 38, sigma3_MPa: 24, P_init_MPa: 20, beta_deg: 30, mu_f: 0.65,
+        C0_MPa: 0, alpha_biot: 0.70, delta_T_C: -15,
+        k_cap_mD: 0.0001, phi_cap_frac: 0.08, IFT_mNm: 32, theta_deg: 15,
+        h_cap_m: 20, dP_cap_MPa: 2,
+        k_res_mD: 35, phi_res_frac: 0.22, h_m: 150, area_km2: 12,
+        Q_m3s: 0.015, t_years: 3, ct_1e10: 8, V_DP: 0.45, E_vol: 0.03, dP_crit_MPa: 0.1,
+        T_C: 54, P_MPa: 22, rho_CO2_kgm3: 750, mu_CO2_uPas: 65,
+        mu_brine_mPas: 0.9, delta_rho_kgm3: 8.5, D_1e9: 2, salinity_ppm: 120000,
+        depth_m: 2100, plume_area_km2: 1.5, plume_thickness_m: 50,
+        c11: true, c12: true, c13: true, c14: false,
+      },
+    };
+
+    window.loadExample = function(name) {
+      const ex = EXAMPLES[name];
+      for (const [k, v] of Object.entries(ex)) {
+        const el = document.getElementById(k);
+        if (!el) continue;
+        if (el.type === 'checkbox') el.checked = v;
+        else el.value = v;
+      }
+    };
+
+    window.runCalc = function() {
+      const g = (id) => parseFloat(document.getElementById(id).value);
+      const gb = (id) => document.getElementById(id).checked;
+
+      const f = {
+        sigma1_MPa: g('sigma1_MPa'), sigma3_MPa: g('sigma3_MPa'),
+        P_init_MPa: g('P_init_MPa'), beta_deg: g('beta_deg'),
+        mu_f: g('mu_f'), C0_MPa: g('C0_MPa'), alpha_biot: g('alpha_biot'),
+        delta_T_C: g('delta_T_C'),
+        k_cap_mD: g('k_cap_mD'), phi_cap_frac: g('phi_cap_frac'),
+        IFT_mNm: g('IFT_mNm'), theta_deg: g('theta_deg'),
+        h_cap_m: g('h_cap_m'), dP_cap_MPa: g('dP_cap_MPa'),
+        Q_m3s: g('Q_m3s'), t_s: g('t_years') * 3.1536e7,
+        k_res_mD: g('k_res_mD'), phi_res_frac: g('phi_res_frac'),
+        ct_Pa: g('ct_1e10') * 1e-10, h_m: g('h_m'), V_DP: g('V_DP'),
+        mu_CO2: g('mu_CO2_uPas') * 1e-6 || undefined,
+        mu_brine_Pa_s: g('mu_brine_mPas') * 1e-3,
+        delta_rho_kgm3: g('delta_rho_kgm3'), D_m: g('D_1e9') * 1e-9,
+        T_C: g('T_C'), P_MPa: g('P_MPa'),
+        rho_CO2_kgm3: g('rho_CO2_kgm3') || 0,
+        area_km2: g('area_km2'), E_vol: g('E_vol'),
+        depth_m: g('depth_m'), salinity_ppm: g('salinity_ppm'),
+        plume_area_km2: g('plume_area_km2'), plume_thickness_m: g('plume_thickness_m'),
+        dP_crit_Pa: g('dP_crit_MPa') * 1e6,
+        c11_usdw_exempt: gb('c11'), c12_legacy_wells: gb('c12'),
+        c13_mineral_rights: gb('c13'), c14_eia_complete: gb('c14'),
+      };
+
+      const result = runScreening(f, 'Custom Formation');
+      renderResults(result);
+    };
+
+    function renderResults(r) {
+      const panel = document.getElementById('results');
+      const passClass = r.overall_pass ? 'pass' : 'fail';
+      const passLabel = r.overall_pass ? 'OVERALL: PASS' : 'OVERALL: FAIL';
+      const summary = `${r.pass_count} PASS | ${r.fail_count} FAIL | ${r.nsr_count} NSR`;
+
+      let cards = '';
+      for (const c of r.criteria) {
+        const statusClass = c.status === 'N/A' ? 'NA' : c.status;
+        const valueStr = c.value !== undefined
+          ? `<div class="crit-value">Value: <strong>${fmtNum(c.value)} ${c.unit ?? ''}</strong>${c.threshold !== undefined ? ` | Threshold: ${fmtNum(c.threshold)} ${c.unit ?? ''}` : ''}</div>`
+          : '';
+        const detailStr = Object.entries(c.details)
+          .slice(0, 4)
+          .map(([k, v]) => `${k}: ${typeof v === 'number' ? fmtNum(v) : v}`)
+          .join(' | ');
+        cards += `
+          <div class="crit-card ${statusClass}">
+            <div class="crit-header">
+              <span class="crit-id">${c.criterion}</span>
+              <span class="badge ${statusClass}">${c.status}</span>
+            </div>
+            <div class="crit-label">${c.label}</div>
+            ${valueStr}
+            <div class="crit-details">${detailStr}</div>
+          </div>`;
+      }
+
+      panel.innerHTML = `
+        <div class="overall-banner ${passClass}">
+          <span>${passLabel} | ${r.formation_name}</span>
+          <span>${summary}</span>
+        </div>
+        <div class="criteria-grid">${cards}</div>`;
+    }
+
+    function fmtNum(v) {
+      if (typeof v !== 'number') return v;
+      if (Math.abs(v) >= 1000) return v.toFixed(0);
+      if (Math.abs(v) >= 1) return v.toFixed(3);
+      if (Math.abs(v) >= 0.001) return v.toFixed(5);
+      return v.toExponential(3);
+    }
+  </script>
+</body>
+</html>
