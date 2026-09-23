@@ -119,11 +119,12 @@ export function runLhsUq(
 
   for (let i = 0; i < nSamples; i++) {
     const fi = { ...baseFormation };
+    const fiAny = fi as unknown as Record<string, number>;
     for (let j = 0; j < paramNames.length; j++) {
-      const name = paramNames[j] as keyof FormationInput;
-      // Thermophysical error fractions handled below
+      const name = paramNames[j];
+      // Thermophysical error fractions handled below; skip boolean fields
       if (!name.endsWith("_error_frac")) {
-        (fi as Record<string, number>)[name] = samples[i][j];
+        fiAny[name] = samples[i][j];
       }
     }
     // Apply multiplicative thermophysical correlation error fractions
@@ -136,8 +137,7 @@ export function runLhsUq(
       const errIdx = paramNames.indexOf(errKey);
       if (errIdx >= 0 && fi[targetKey] !== undefined) {
         const err = samples[i][errIdx];
-        (fi as Record<string, number>)[targetKey as string] =
-          (fi[targetKey] as number) * (1 + err);
+        fiAny[targetKey as string] = (fi[targetKey] as number) * (1 + err);
       }
     }
     try {
